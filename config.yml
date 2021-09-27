@@ -1,0 +1,31 @@
+RAW_SCORES_FILE: 'data/for_chris_v10/clean_data/scores_new.csv'
+CACHED_SCORES_FILE: 'data/for_chris_v10/clean_data/cached_scores.csv'
+BIDS_FILE: 'data/for_chris_v10/clean_data/bids.csv'
+REVIEWERS_FILE: 'data/for_chris_v10/clean_data/reviewers.csv'
+COAUTHOR_DISTANCE_FILE: 'data/for_chris_v10/clean_data/distances.csv'
+
+NAN_AS_ZERO_SCORE: False
+POSITIVE_BID_THR:  4
+DEFAULT_BID_WHEN_NO_BIDS: 2 #rubric: 0.05,1,2,4,6: not willing , not entered, in a pinch, willing, eager
+HYPER_PARAMS: 
+    'reviews_per_paper_PC': 2
+    'reviews_per_paper_SPC': 1
+    'reviews_per_paper_AC': 1
+    'papers_per_reviewer_PC': 3
+    'papers_per_reviewer_SPC': 200
+    'papers_per_reviewer_AC': 200
+    'region_reward': 0.1
+    'coauthor_dis0_pen': -0.3
+    'coauthor_dis1_pen': -0.2
+    'cycle_pen': -0.05
+    'bid_inverse_exponents': [0.05,1,1.5,2.5,4]
+    'paper_distribution_pen':
+        'AC': {20: -0.05, 30: -0.05, 40: -0.05, 50: -0.05, 60: -0.5}
+        'SPC': {8: -0.05, 12: -0.05, 16: -0.05, 20: -0.05, 24: -0.5}
+    'remove_non_symmetric': True
+    'relax_paper_capacity': True
+    'sen_reward': 0.1
+    'sen_reward_cap': 4
+    'sen_reward_bound': 8
+
+
