@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def get_agg_scores(config, scores):
+def get_scores(config, scores):
     scores['is_positive'] = scores['bid'] >= config['POSITIVE_BID_THR']
     bid2exponent = {'bid':[0.05,1,2,4,6],'exponent': config['HYPER_PARAMS']['bid_inverse_exponents']}
     #[1/0.05, 1.0, 1.0/2, 1.0/4.0 , 1.0/6.0]}
@@ -20,28 +20,28 @@ def get_agg_scores(config, scores):
     scores.loc[scores['nacl'].isna(),'ms'] = scores['ntpms'].loc[scores['nacl'].isna()]
 
     #agg score: avg of match score and keyword score
-    scores['agg_scores_base'] = (scores['ms'] + scores['nk'])/2
+    scores['scores_base'] = (scores['ms'] + scores['nk'])/2
     #if match score is na, overwrite by keyword score
-    scores.loc[scores['ms'].isna(),'agg_scores_base'] = scores['nk'].loc[scores['ms'].isna()]
+    scores.loc[scores['ms'].isna(),'scores_base'] = scores['nk'].loc[scores['ms'].isna()]
     #if keyword score is na, overwrite by match score
-    scores.loc[scores['nk'].isna(),'agg_scores_base'] = scores['ms'].loc[scores['nk'].isna()]
+    scores.loc[scores['nk'].isna(),'scores_base'] = scores['ms'].loc[scores['nk'].isna()]
     
     # tweaking based on bid value
     condn = scores['is_positive'] & (scores['nk'] < epsilon)
     #if bid is positive and keyword score < epsilon, overwrite by match score
-    scores.loc[condn,'agg_scores_base'] = scores['ms'].loc[condn]
+    scores.loc[condn,'scores_base'] = scores['ms'].loc[condn]
     
     #if everything is na, score = 0
-    scores.loc[scores['agg_scores_base'].isna(),'agg_scores_base'] = 0.0
+    scores.loc[scores['scores_base'].isna(),'scores_base'] = 0.0
     #
-    scores['agg_score']  = scores['agg_scores_base']**(1.0/scores['exponent'])
+    scores['score']  = scores['scores_base']**(1.0/scores['exponent'])
     
     # if score is below this thr, then backoff to keyword score only
     lower_thr = 0.15
     #select all scores less than 0.15
-    condn_ll = (scores['agg_score'] <= lower_thr) & (~scores['nk'].isna())
+    condn_ll = (scores['score'] <= lower_thr) & (~scores['nk'].isna())
     #recompute them as ((nk)^(1/exponent)).clip(upper=0.15)
-    scores.loc[condn_ll,'agg_score'] = (scores['nk'].loc[condn_ll]**(1.0/scores['exponent'].loc[condn_ll])).clip(upper=lower_thr)
+    scores.loc[condn_ll,'score'] = (scores['nk'].loc[condn_ll]**(1.0/scores['exponent'].loc[condn_ll])).clip(upper=lower_thr)
     return scores
 
 def compute_scores(config=None):
@@ -51,10 +51,10 @@ def compute_scores(config=None):
     scores = scores.join(bids)
     scores['bid'] = scores['bid'].fillna(0)
 
-    scores = get_agg_scores(config,scores)
-    agg_scores = scores[['agg_score']]
-    agg_scores = agg_scores.query('agg_score > 0')
+    scores = get_scores(config,scores)
+    scores = scores[['score']]
+    scores = scores.query('score > 0')
 
-    agg_scores.to_csv(config['CACHED_SCORES_FILE'])
-    return agg_scores
+    scores.to_csv(config['CACHED_SCORES_FILE'])
+    return scores
 

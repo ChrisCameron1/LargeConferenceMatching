@@ -7,8 +7,8 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
-def to_name(basename):
-    return basename + '.lp'
+def to_name(output_files_prefix):
+    return output_files_prefix + '.lp'
 
 class MatchingILP(BaseILP):
 
@@ -20,7 +20,7 @@ class MatchingILP(BaseILP):
                 co_review_vars,
                 add_soft_constraints=True,
                 fixed_variable_solution_file=None,
-                basename=''
+                output_files_prefix=''
                 ):
         super().__init__()
 
@@ -32,9 +32,9 @@ class MatchingILP(BaseILP):
         self.co_review_vars = co_review_vars
         self.bidding_cycles = None
         self.fixed_variable_solution_file = fixed_variable_solution_file
-        self.basename= basename
+        self.output_files_prefix= output_files_prefix
 
-    def create_ilp(self,basename=''):
+    def create_ilp(self,output_files_prefix=''):
 
         #TODO: Check that every paper has reviewers and vice versa
         
@@ -78,7 +78,7 @@ class MatchingILP(BaseILP):
            
         logger.info('Start writing! Phew!')
 
-        lp_filename = to_name(self.basename)
+        lp_filename = to_name(self.output_files_prefix)
         self.write_to_file(lp_filename)#self.config.OUTPUT_ILP_FILE)
         logger.info("Wrote out %s to file" % lp_filename)
         # Write out yml file for managin experiments
@@ -109,7 +109,7 @@ class MatchingILP(BaseILP):
             paper_vars = list(map(lambda x: 'x{}_{}'.format(x,rid),papers))
             coefs = [1]*len(paper_vars)
             oper = '<='
-            rhs = self.config['HYPER_PARAMS'][f'papers_per_reviewer_{role}']
+            rhs = self.config['HYPER_PARAMS'][f'max_papers_per_reviewer_{role}']
 
             eqn = Equation(eqn_type='cons',name='reviewer_capacity_{}_{}'.format(rid, role),
                   var_coefs=list(zip(paper_vars,coefs)),oper=oper,
@@ -122,20 +122,20 @@ class MatchingILP(BaseILP):
     def add_paper_capacity_constraints(self): #1
         all_eqns = []
 
-        for pid in tqdm(self.paper_reviewer_df.index.unique('paper'), desc="Building paper capacity constraints..."):
+        for group_name, group in self.paper_reviewer_df.reset_index().groupby(['paper','role']):
+            reviewers = group['reviewer'] 
+            pid = group_name[0]           
 
-            for role in ['PC', 'SPC', 'AC']:
+            reviewers = self.paper_reviewer_df.query(f'paper == {pid} and role == "{role}"').index.get_level_values('reviewer')
+            reviewer_vars = list(map(lambda x: 'x{}_{}'.format(pid,x),reviewers))
+            coefs = [1]*len(reviewer_vars)
+            oper = '<=' if self.config['HYPER_PARAMS']['relax_paper_capacity'] else '='
+            rhs = self.config['HYPER_PARAMS'][f'max_reviews_per_paper_{role}']
 
-                reviewers = self.paper_reviewer_df.query(f'paper == {pid} and role == "{role}"').index.get_level_values('reviewer')
-                reviewer_vars = list(map(lambda x: 'x{}_{}'.format(pid,x),reviewers))
-                coefs = [1]*len(reviewer_vars)
-                oper = '<=' if self.config['HYPER_PARAMS']['relax_paper_capacity'] else '='
-                rhs = self.config['HYPER_PARAMS'][f'reviews_per_paper_{role}']
-
-                eqn_ac = Equation(eqn_type='cons',name='paper_capacity_{}_{}'.format(role,pid),
-                      var_coefs=list(zip(reviewer_vars,coefs)),oper=oper,
-                      rhs=rhs)
-                all_eqns.append(eqn_ac)
+            eqn_ac = Equation(eqn_type='cons',name='paper_capacity_{}_{}'.format(role,pid),
+                  var_coefs=list(zip(reviewer_vars,coefs)),oper=oper,
+                  rhs=rhs)
+            all_eqns.append(eqn_ac)
 
         self.constraints.add(all_eqns)
 
@@ -170,7 +170,7 @@ class MatchingILP(BaseILP):
 
         def add(distance_df, penalty):
             # Take to take set over the i,j sets. Here we are taking set over  
-            reviewer_pairs_within_distance = set(distance_df.set_index(['reviewer_1', 'reviewer_2']).index.values)
+            reviewer_pairs_within_distance = set(distance_df.index.values)
             coreviewer_var_pairs = set((i,j) for (i, j, _) in self.co_review_vars)
             pairs_to_add = coreviewer_var_pairs.intersection(reviewer_pairs_within_distance)
             dis_vars = [f'coreview{i}_{j}' for (i, j) in pairs_to_add]
@@ -180,40 +180,37 @@ class MatchingILP(BaseILP):
             self.objective.add(eqn)
 
         # Filter out ACs from distance dataframe
-        ac_reviewers = reviewer_df.query(f'role == "AC"').index.values
-        distance_df = distance_df[~distance_df['reviewer_1'].isin(list(ac_reviewers))]
-        distance_df = distance_df[~distance_df['reviewer_2'].isin(list(ac_reviewers))]
+        ac_reviewers = self.reviewer_df.query(f'role == "AC"').index.values
+        distance_df = self.distance_df.query('reviewer_1 not in @ac_reviewers').query('reviewer_2 not in @ac_reviewers')
 
-        add(self.distance_df.query(f'distance == 0'), self.config['HYPER_PARAMS']['coauthor_dis0_pen'])
-        add(self.distance_df.query(f'distance == 1'), self.config['HYPER_PARAMS']['coauthor_dis1_pen'])
+        add(distance_df.query(f'distance == 0'), self.config['HYPER_PARAMS']['coreview_dis0_pen'])
+        add(distance_df.query(f'distance == 1'), self.config['HYPER_PARAMS']['coreview_dis1_pen'])
     
 
     def add_seniority_reward(self):
 
         for paper in tqdm(self.paper_reviewer_df.index.unique('paper'), desc="Building seniority constraints..."):
 
-            pc_rids = self.paper_reviewer_df.query(f'paper == {paper} and role=="pc"').index.get_level_values('reviewer')
+            pc_rids = self.paper_reviewer_df.query(f'paper == {paper} and role=="PC"').index.get_level_values('reviewer')
             pc_vars = list(map(lambda x: 'x{}_{}'.format(paper,x),pc_rids))
 
-            seniorities = list(self.reviewer_df.loc[pc_rids]['seniority'].values)
+            seniorities = list(-1 * self.reviewer_df.loc[pc_rids]['seniority'].values)
             coefs = seniorities
 
-            sen_reward_var = 'sen_reward_{}'.format(paper)
-            self.bounds.add(sen_reward_var, low=0.0, up=self.config['HYPER_PARAMS']['sen_reward_cap'])
-            self.general.add(sen_reward_var)
-
-            pc_vars_balance = pc_vars + [sen_reward_var]
+            sen_slack_var = 'sen_slack_{}'.format(paper)
+            self.bounds.add(sen_slack_var, low=self.config['HYPER_PARAMS']['min_seniority'], up=self.config['HYPER_PARAMS']['target_seniority'])
+            self.general.add(sen_slack_var)
+            pc_vars.append(sen_slack_var)
             coefs.append(1)
-            rhs = self.config['HYPER_PARAMS']['sen_reward_bound']
             eqn_slbalance = Equation(eqn_type='cons',
-                              name='sen_bal_{}'.format(paper),
-                              var_coefs=list(zip(pc_vars_balance,coefs)),oper='<=',
-                              rhs= rhs
+                              name='sen_slack_{}'.format(paper),
+                              var_coefs=list(zip(pc_vars,coefs)),oper='<=',
+                              rhs= 0
                              )
             self.constraints.add(eqn_slbalance)
 
             # Reward objective function by slack var
-            var_coefs = [(sen_reward_var, self.config['HYPER_PARAMS']['sen_reward'])]
+            var_coefs = [(sen_slack_var, self.config['HYPER_PARAMS']['sen_reward'])]
             eqn = Equation('obj', 'sen_reward_{}'.format(paper), var_coefs, None, None)
             self.objective.add(eqn)
 
@@ -260,16 +257,20 @@ class MatchingILP(BaseILP):
         self.bounds.add(all_region_vars,None,[1]*len(all_region_vars))
 
     def populate_bidding_cycles(self):
+        self.paper_reviewer_df.to_csv('data/paper_reviewer_df_cycles.csv')
+        self.reviewer_df.to_csv('data/reviewer_df_cycles.csv')
+
 
         self.bidding_cycles = []
+        filtered_paper_reviewer_df =  self.paper_reviewer_df.query(f"bid >={self.config['POSITIVE_BID_THR']} and role != 'AC'")
         for reviewer1, row in tqdm(self.reviewer_df.query("role != 'AC'").iterrows(), desc='Building bidding cycles...'):
             #detect bidding cycles
             #go to each paper and loop over reviewers that are authors
-            for paper1 in self.paper_reviewer_df.query(f"reviewer == {reviewer1} and bid >={self.config['POSITIVE_BID_THR']} and role != 'AC'").index.get_level_values('paper'):
+            for paper1 in filtered_paper_reviewer_df.query(f"reviewer == {reviewer1}").index.get_level_values('paper'):
                 #fetch authors who are reviewers
                 for reviewer2 in self.paper_reviewer_df.query(f'paper == {paper1} and authored == 1').index.get_level_values('reviewer'):
                     if (reviewer1 < reviewer2):                    
-                        for paper2 in self.paper_reviewer_df.query(f"reviewer == {reviewer2} and bid >={self.config['POSITIVE_BID_THR']} and role != 'AC'").index.get_level_values('paper'):
+                        for paper2 in filtered_paper_reviewer_df.query(f"reviewer == {reviewer2}").index.get_level_values('paper'):
                             if reviewer1 in self.paper_reviewer_df.query(f'paper == {paper2} and authored == 1').index.get_level_values('reviewer'):
                                 self.bidding_cycles.append((reviewer1,reviewer2,paper1,paper2))
 

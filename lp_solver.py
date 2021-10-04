@@ -6,14 +6,12 @@ import os
 import time
 
 
-def solve(problem_path=None, solution_file=None, results_file=None, warm_start=None, abstol=None, relative_mip_gap=None):
+def solve(problem_path=None, solution_file=None, warm_start=None, abstol=None, relative_mip_gap=None):
 	if problem_path is None:
 		raise ValueError("must provide path to problem")
 
 	if solution_file is None:
 		solution_file = problem_path.replace('.lp', '.sol')
-	if results_file is None:
-		results_file = solution_file.replace('.sol', '_RESULTS.txt')
 
 	cplex_log_file = problem_path.replace('.lp', '_cplex.log')
 
@@ -46,8 +44,6 @@ def solve(problem_path=None, solution_file=None, results_file=None, warm_start=N
 			cpx.solution.write(solution_file)
 			print("Wrote solution to %s" % solution_file)
 			cpx.end()
-			# Hacky, but quick
-			os.system(f'python analyze_sol.py --solution_file={solution_file} &> {results_file}')
 	except Exception as e:
 		print(e)
 		status = '1217'
