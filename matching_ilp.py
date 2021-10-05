@@ -4,6 +4,7 @@ import logging
 import yaml
 from base_ilp import BaseILP, Equation, Objective, Constraints, General
 from tqdm import tqdm
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -257,22 +258,27 @@ class MatchingILP(BaseILP):
         self.bounds.add(all_region_vars,None,[1]*len(all_region_vars))
 
     def populate_bidding_cycles(self):
-        self.paper_reviewer_df.to_csv('data/paper_reviewer_df_cycles.csv')
-        self.reviewer_df.to_csv('data/reviewer_df_cycles.csv')
-
+        # Create a dict mapping from paper to list of authors
+        paper_to_authors = defaultdict(list)
+        for reviewer, row in reviewer_df.iterrows():
+            for paper in row['authored']:
+                paper_to_authors[paper].append(reviewer)
 
         self.bidding_cycles = []
-        filtered_paper_reviewer_df =  self.paper_reviewer_df.query(f"bid >={self.config['POSITIVE_BID_THR']} and role != 'AC'")
-        for reviewer1, row in tqdm(self.reviewer_df.query("role != 'AC'").iterrows(), desc='Building bidding cycles...'):
-            #detect bidding cycles
-            #go to each paper and loop over reviewers that are authors
-            for paper1 in filtered_paper_reviewer_df.query(f"reviewer == {reviewer1}").index.get_level_values('paper'):
-                #fetch authors who are reviewers
-                for reviewer2 in self.paper_reviewer_df.query(f'paper == {paper1} and authored == 1').index.get_level_values('reviewer'):
-                    if (reviewer1 < reviewer2):                    
-                        for paper2 in filtered_paper_reviewer_df.query(f"reviewer == {reviewer2}").index.get_level_values('paper'):
-                            if reviewer1 in self.paper_reviewer_df.query(f'paper == {paper2} and authored == 1').index.get_level_values('reviewer'):
-                                self.bidding_cycles.append((reviewer1,reviewer2,paper1,paper2))
+        # Only interested in high bids 
+        filtered_paper_reviewer_df = paper_reviewer_df.query(f"bid >= {self.config['POSITIVE_BID_THR']}  and role != 'AC'")
+        # Bidding cycles only occur for reviewers who are also authors - not reviewers with no submissions
+        filtered_reviewer_df = reviewer_df.query("role != 'AC' and authored_any")
+
+        for reviewer_1, group in tqdm(filtered_paper_reviewer_df.groupby(level=1), total=filtered_paper_reviewer_df.reset_index()['reviewer'].nunique(), desc='Building bidding cycles...'):
+            reviewer_1_high_bid_papers = group.reset_index()['paper'].values
+            reviewer_1_authored_papers = self.reviewer_df.loc[reviewer_1]['authored']
+            for paper_1 in reviewer_1_high_bid_papers:        
+                for reviewer_2 in paper_to_authors[paper_1]:
+                    if reviewer_1 < reviewer_2:
+                        # Reviewer 1 bid high on paper_1, which revivewer_2 authored. Find any "paper_2" such that paper_2 is written by reviewer_1 and reviewer_2 bid highly on it
+                        for paper_2 in filtered_paper_reviewer_df.query(f"reviewer == {reviewer_2} and paper in @reviewer_1_authored_papers").index.get_level_values('paper'):
+                            self.bidding_cycles.append((reviewer_1, reviewer_2, paper_1, paper_2))
 
         self.bidding_cycles = list(set(self.bidding_cycles))
 

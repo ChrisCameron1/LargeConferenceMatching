@@ -25,7 +25,7 @@ def create_paper_reviewer_df(scores_df=None,
 	# Add role column
 	logger.info('add role')
 	role_dict = reviewer_df['role'].to_dict()
-	scores_df['role'] = scores_df.reset_index()['reviewer'].map(role_dict)
+	scores_df['role'] = scores_df.reset_index()['reviewer'].map(role_dict).values
 
 
 	reviewers = reviewer_df.index.values
@@ -78,9 +78,5 @@ def create_paper_reviewer_df(scores_df=None,
 	logger.info('join bids')
 	paper_reviewer_df = paper_reviewer_df.join(bids_df)
 	paper_reviewer_df['bid'].fillna(0)
-
-	logger.info('add authored')
-	# Add indicator, whether reviewer is author on given paper
-	paper_reviewer_df['authored'] = paper_reviewer_df.reset_index().apply(lambda row: 1 if row['paper'] in reviewer_df.loc[row['reviewer']]['authored'] else 0, axis=1)
 
 	return paper_reviewer_df

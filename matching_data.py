@@ -26,7 +26,8 @@ def get_data(config, per_reviewer_num_indicators=None, per_paper_num_indicators=
 	reviewer_df = pd.read_csv(config['REVIEWERS_FILE']).set_index('reviewer')
 	reviewer_df['conflict_papers'] = reviewer_df['conflict_papers'].apply(lambda x: json.loads(x))
 	reviewer_df['authored'] = reviewer_df['authored'].apply(lambda x: json.loads(x))
-
+	reviewer_df['authored_any'] = reviewer_df['authored'].apply(lambda x: len(x) > 0)
+	
 	reviewers = reviewer_df.index.values
 	papers = scores_df.index.unique('paper').values
 	missing_reviewers = set(scores_df.index.unique('reviewer')) - set(reviewers)
