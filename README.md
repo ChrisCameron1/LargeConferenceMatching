@@ -5,7 +5,7 @@ To execute, can run the following commands:
 ```
 cd LargeConferenceMatching
 mkdir results
-python iter_solve.py --config_file config.yml --basename ./results/'
+python iter_solve.py --config_file config.yml --basename ./results/
 ```
 
 The .yml must contain filepaths to four data files as so:
