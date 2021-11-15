@@ -22,7 +22,7 @@ The `.csv` files should have the following headers and data format:
 **Header**: `paper,reviewer,ntpms,nacl,nk,tpms,acl,k`\
 **Data types**:\
 `paper/reviewer`: int (unique indentifier for every paper/reviewer)\
-`ntpms,nacl,nk,tpms,acl,k`: float (any real number. The `n` represent the normalizes version of each of tpms,acl, and k (keywords))
+`ntpms,nacl,nk,tpms,acl,k`: float (any real number. The `n` represents the normalized version of each of tpms,acl, and k (keywords). See paper for description of normalization.)
 - `BIDS_FILE`\
 **Header**: `paper,reviewer,bid`\
 **Data types**:\
@@ -81,8 +81,6 @@ CACHED_SCORES_FILE: 'data/cached_scores.csv'
 - `remove_non_symmetric` :Removes reviewer pairs for coreview constraints if their coreview distances were not symmetric (i.e., d(i,j) \neq d(j,i)))
 - `fixed_variable_solution_file` File format is a CSV of the form `paper,reviewer`. These pairings will be set to occur, no matter what. (e.g, for phase 2, would pass a file for fixed phase 1 matches)
 - `relax_paper_capacity` change the reviewer capacity constraints for every paper to be an upper bound rather than equality. Useful, because papers without enough reviewers must have had very poor options for matches. Manual matching is more appropriate here if there a small number of such cases.
-- `existing_assignments` File format is a CSV of the form `paper,reviewer`. These pairings will be set to occur, no matter what.
-- basename
 - `score_threshold` variables don't get created for any paper-reviewer pair below the `score_threshold`
 
 
@@ -93,7 +91,7 @@ CACHED_SCORES_FILE: 'data/cached_scores.csv'
 When each stage completes, you will find the following files in `dir` with prefix `experiment_name`_iter_`iteration`]: 
     
     `_time.csv` - Walltime
-    `_status.csv` - CPLEX status
+    `_status.csv` - dictionary of time (walltime), status (CPLEX status), objective (CPLEX objective), and full_objective (objective after adding full constraint set)
     `.sol` - CPLEX solution file (for warm starting / analyzing)
     `.yml` - your config
     `_under_capacity_papers.csv` - Papers that were under the max review
