@@ -272,11 +272,6 @@ def main(output_files_prefix='itertest',
             logger.info(f'No more coauthor constraints to add. Terminated at iteration {i} with {len(d0_pairs)} d0 and {len(d1_pairs)} d1 coauthor constraints')
             break
 
-        # # Test with existing coreviews
-        # if len(existing_pairs) > 0:#len(d0_pairs.difference(existing_pairs)) == 0 and len(d1_pairs.difference(existing_pairs)) == 0 :
-        #     logger.info(f'There were existing pairNo more coauthor constraints to add given initial constraints. Terminated at iteration {i} with {len(d0_pairs)} d0 and {len(d1_pairs)} d1 coauthor constraints')
-        #     break
-
         if i >= max_iter:
             logger.info(f'Exceeded max iteration of {max_iter}')
             break

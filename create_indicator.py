@@ -20,22 +20,17 @@ def create_paper_reviewer_df(scores_df=None,
 							score_threshold=0.15):
 
 	# Filter out scores below threshold
-	logger.info('filter scores')
+	logger.info(f'Filtering scores by threshold {score_threshold}')
 	num_entries_before = scores_df.size
 	scores_df = scores_df.query(f'score > {score_threshold}').copy()
 	num_entries_after = scores_df.size
 	logger.info(f'Keeping {num_entries_after/num_entries_before} fraction of scores below threshold {score_threshold}...')
 	# Add role column
-	logger.info('add role')
 	role_dict = reviewer_df['role'].to_dict()
 	scores_df['role'] = scores_df.reset_index()['reviewer'].map(role_dict).values
 
-
 	reviewers = scores_df.index.unique('reviewer').values
 	papers = scores_df.index.unique('paper').values
-
-	if 1438 not in papers:
-		raise Exception('Paper 1438 not in papers')
 
 	logger.info('getting num indicators')
 	if per_reviewer_num_indicators is None:
@@ -51,7 +46,7 @@ def create_paper_reviewer_df(scores_df=None,
 			records.append({'paper':paper,'PC_k':k,'SPC_k':k,'AC_k':k})
 		per_paper_num_indicators = pd.DataFrame.from_records(records).set_index('paper')
 
-	logger.info('deleting conflicts')
+	logger.info('Deleting conflicts...')
 	# Filter out conflicts
 	to_delete = []
 	for reviewer in tqdm(reviewers,desc='Getting conflict papers'):
@@ -62,7 +57,7 @@ def create_paper_reviewer_df(scores_df=None,
 	scores_df = scores_df.drop(index=to_delete, errors='ignore') # Only existing labels are dropped
 
 	# Sort dataframe by scores
-	logger.info('sorting scores...')
+	logger.info('Sorting scores...')
 	scores_df = scores_df.sort_values(by=['score'],ascending=False)
 	dfs=[]
 	# Add k best papers per reviewer

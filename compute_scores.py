@@ -53,15 +53,10 @@ def compute_scores(config=None):
 
     scores = get_scores(config,scores)
     scores = scores[['score']]
-    scores.to_csv(config['CACHED_SCORES_FILE'].replace('.csv','prefiltered.csv'))
     num_entries_before = scores.size
-    logger.info(f'num entries before {num_entries_before}')
     scores = scores.query('score > 0')
     num_entries_after = scores.size
-    logger.info(f'num entries after {num_entries_after}')
-
-
-    logger.info(f'Filtered {num_entries_before - num_entries_after} subzero scores...')
+    logger.info(f'Filtered {(num_entries_before - num_entries_after) / num_entries_before} fraction of scores <= 0...')
 
     scores.to_csv(config['CACHED_SCORES_FILE'])
     return scores

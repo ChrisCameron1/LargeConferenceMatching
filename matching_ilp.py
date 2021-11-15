@@ -309,7 +309,6 @@ class MatchingILP(BaseILP):
         self.constraints.add(eqns)
 
 
-
     def add_cycle_objective(self): #7
         #optimize Penalty*(cycle_
         for this_cycle in self.bidding_cycles:
