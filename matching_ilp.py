@@ -35,7 +35,7 @@ class MatchingILP(BaseILP):
         self.fixed_variable_solution_file = fixed_variable_solution_file
         self.output_files_prefix= output_files_prefix
 
-    def create_ilp(self,output_files_prefix=''):
+    def create_ilp(self,lp_filename=''):
 
         #TODO: Check that every paper has reviewers and vice versa
         
@@ -79,16 +79,13 @@ class MatchingILP(BaseILP):
            
         logger.info('Start writing! Phew!')
 
-        lp_filename = to_name(self.output_files_prefix)
-        self.write_to_file(lp_filename)#self.config.OUTPUT_ILP_FILE)
+        self.write_to_file(lp_filename)
         logger.info("Wrote out %s to file" % lp_filename)
-        # Write out yml file for managin experiments
+        # Write out yml file for managing experiments
         yml_filename = lp_filename.replace('lp','yml')
         with open(yml_filename, 'w') as fh:
             yaml.dump(self.config, fh)
         logger.info('End writing! Phew!')
-
-        return lp_filename
 
     '''*********** Objective function **********'''
     def add_reviewer_matching_objective(self):
@@ -104,7 +101,7 @@ class MatchingILP(BaseILP):
     def add_reviewer_capacity_constraints(self):
         all_eqns = []
 
-        for rid, role in tqdm(self.reviewer_df['role'].items(), desc="Building reviewer capacity constraints..."):
+        for rid, role in tqdm(self.reviewer_df['role'].items(), total=self.reviewer_df.index.size, desc="Building reviewer capacity constraints..."):
 
             papers = self.paper_reviewer_df.query(f'reviewer == {rid}').index.get_level_values('paper')
             paper_vars = list(map(lambda x: 'x{}_{}'.format(x,rid),papers))
@@ -125,9 +122,9 @@ class MatchingILP(BaseILP):
 
         for group_name, group in self.paper_reviewer_df.reset_index().groupby(['paper','role']):
             reviewers = group['reviewer'] 
-            pid = group_name[0]           
+            pid = group_name[0]    
+            role = group_name[1]          
 
-            reviewers = self.paper_reviewer_df.query(f'paper == {pid} and role == "{role}"').index.get_level_values('reviewer')
             reviewer_vars = list(map(lambda x: 'x{}_{}'.format(pid,x),reviewers))
             coefs = [1]*len(reviewer_vars)
             oper = '<=' if self.config['HYPER_PARAMS']['relax_paper_capacity'] else '='
@@ -195,6 +192,9 @@ class MatchingILP(BaseILP):
             pc_rids = self.paper_reviewer_df.query(f'paper == {paper} and role=="PC"').index.get_level_values('reviewer')
             pc_vars = list(map(lambda x: 'x{}_{}'.format(paper,x),pc_rids))
 
+            if len(pc_vars) == 0:
+                raise Exception(f'Paper {paper} has no PC reviewers!')
+
             seniorities = list(-1 * self.reviewer_df.loc[pc_rids]['seniority'].values)
             coefs = seniorities
 
@@ -243,11 +243,12 @@ class MatchingILP(BaseILP):
         all_region_vars = []
         for region, region_df in self.reviewer_df.query("role != 'AC'").groupby('region'):
             region_rids = region_df.index
-            for pid in self.paper_reviewer_df.index.unique('paper'):
+            for pid, pid_df in self.paper_reviewer_df.groupby(level='paper'):
+                region_reviewers = set(region_rids).intersection(set(pid_df.index.get_level_values('reviewer')))
                 region_vars = ['region{}_{}'.format(pid,region)]
-                this_vars = region_vars + [ 'x{}_{}'.format(pid,x) for x in region_rids]
+                this_vars = region_vars + [ 'x{}_{}'.format(pid,x) for x in region_reviewers]
                 all_region_vars += region_vars
-                this_coefs = [1] + [-1]*len(region_rids)
+                this_coefs = [1] + [-1]*len(region_reviewers)
                 eqn = Equation('cons','region_{}_{}'.format(pid,region),list(zip(this_vars,this_coefs)),'<=',0)
                 eqns.append(eqn)
 
@@ -260,15 +261,15 @@ class MatchingILP(BaseILP):
     def populate_bidding_cycles(self):
         # Create a dict mapping from paper to list of authors
         paper_to_authors = defaultdict(list)
-        for reviewer, row in reviewer_df.iterrows():
+        for reviewer, row in self.reviewer_df.iterrows():
             for paper in row['authored']:
                 paper_to_authors[paper].append(reviewer)
 
         self.bidding_cycles = []
         # Only interested in high bids 
-        filtered_paper_reviewer_df = paper_reviewer_df.query(f"bid >= {self.config['POSITIVE_BID_THR']}  and role != 'AC'")
+        filtered_paper_reviewer_df = self.paper_reviewer_df.query(f"bid >= {self.config['POSITIVE_BID_THR']}  and role != 'AC'")
         # Bidding cycles only occur for reviewers who are also authors - not reviewers with no submissions
-        filtered_reviewer_df = reviewer_df.query("role != 'AC' and authored_any")
+        filtered_reviewer_df = self.reviewer_df.query("role != 'AC' and authored_any")
 
         for reviewer_1, group in tqdm(filtered_paper_reviewer_df.groupby(level=1), total=filtered_paper_reviewer_df.reset_index()['reviewer'].nunique(), desc='Building bidding cycles...'):
             reviewer_1_high_bid_papers = group.reset_index()['paper'].values

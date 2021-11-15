@@ -27,7 +27,8 @@ HYPER_PARAMS:
     'remove_non_symmetric': True
     'relax_paper_capacity': True
     'sen_reward': 0.1
-    'min_seniority': 3
+    'min_seniority': 0 # seniority scale: 0,1,2,3
     'target_seniority': 5
+    'include_d1': True
 
 

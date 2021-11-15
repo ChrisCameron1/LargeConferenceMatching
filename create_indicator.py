@@ -21,15 +21,21 @@ def create_paper_reviewer_df(scores_df=None,
 
 	# Filter out scores below threshold
 	logger.info('filter scores')
+	num_entries_before = scores_df.size
 	scores_df = scores_df.query(f'score > {score_threshold}').copy()
+	num_entries_after = scores_df.size
+	logger.info(f'Keeping {num_entries_after/num_entries_before} fraction of scores below threshold {score_threshold}...')
 	# Add role column
 	logger.info('add role')
 	role_dict = reviewer_df['role'].to_dict()
 	scores_df['role'] = scores_df.reset_index()['reviewer'].map(role_dict).values
 
 
-	reviewers = reviewer_df.index.values
+	reviewers = scores_df.index.unique('reviewer').values
 	papers = scores_df.index.unique('paper').values
+
+	if 1438 not in papers:
+		raise Exception('Paper 1438 not in papers')
 
 	logger.info('getting num indicators')
 	if per_reviewer_num_indicators is None:
@@ -60,19 +66,41 @@ def create_paper_reviewer_df(scores_df=None,
 	scores_df = scores_df.sort_values(by=['score'],ascending=False)
 	dfs=[]
 	# Add k best papers per reviewer
+	missing_count = {'PC': 0, 'SPC':0, 'AC':0}
 	for reviewer in tqdm(reviewers, desc='Adding best papers for reviewers'):
 		reviewer_k = per_reviewer_num_indicators.loc[reviewer, 'k']
-		dfs.append(scores_df.query(f'reviewer == {reviewer}').head(reviewer_k))
+		role = reviewer_df.loc[reviewer]['role']
+		k_reviewers_to_add = scores_df.query(f'reviewer == {reviewer}').head(reviewer_k)
+		dfs.append(k_reviewers_to_add)
+
+	for role in ["PC","SPC","AC"]:
+		logger.info(f'{missing_count[role]} {role} reviewers with no papers')
 
 	# Add k best reviewers per paper
+	papers_to_delete=[]
+	missing_count = {'PC': 0, 'SPC':0, 'AC':0}
 	for paper in tqdm(papers,desc='Adding best reviewers for papers'):
 		paper_df = scores_df.query(f"paper == {paper}")
 		for role in ["PC","SPC","AC"]:
 			paper_k = per_paper_num_indicators.loc[paper][f'{role}_k']
-			dfs.append(paper_df.query(f'role == "{role}"').head(paper_k))
+			k_reviewers_to_add = paper_df.query(f'role == "{role}"').head(paper_k)
+			if role =='PC' and len(k_reviewers_to_add) == 0:
+				papers_to_delete.append(paper)
+			if len(k_reviewers_to_add) == 0:
+				missing_count[role]+=1
+			dfs.append(k_reviewers_to_add)
+	for role in ["PC","SPC","AC"]:
+		logger.info(f'{missing_count[role]} papers with no {role} reviewers')
 
 
-	paper_reviewer_df = pd.concat(dfs).drop_duplicates()
+	paper_reviewer_df = pd.concat(dfs)
+	paper_reviewer_df = paper_reviewer_df.reset_index().drop_duplicates().set_index(['paper','reviewer'])
+	size_before = paper_reviewer_df.size
+	logger.info(f'{len(papers_to_delete)} papers to delete...')
+	logger.info(papers_to_delete)
+	paper_reviewer_df = paper_reviewer_df.drop(index=papers_to_delete, level='paper', errors='ignore')
+	logger.info(f'{size_before - paper_reviewer_df.size} entries deleted')
+	logger.info(f'Keeping {paper_reviewer_df.size/num_entries_after} fraction of scores adding k best reviewers and papers...')
 
 	# Add bids
 	logger.info('join bids')

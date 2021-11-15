@@ -14,10 +14,11 @@ class MatchingData:
 	paper_reviewer_df: pd.DataFrame
 	distance_df: pd.DataFrame
 	
-def get_data(config, per_reviewer_num_indicators=None, per_paper_num_indicators=None):
+def get_data(config, per_reviewer_num_indicators=None, per_paper_num_indicators=None, rebuild_scores_file=False):
 	logger.info("Computing aggregate scores from raw scores...")
 
-	if os.path.isfile(config['CACHED_SCORES_FILE']):
+	if os.path.isfile(config['CACHED_SCORES_FILE']) and not rebuild_scores_file:
+		logger.info(f"Cached file {config['CACHED_SCORES_FILE']} exists. Reading from file...")
 		scores_df = pd.read_csv(config['CACHED_SCORES_FILE']).set_index(['paper','reviewer'])
 	else:
 		scores_df = compute_scores(config)
@@ -44,6 +45,10 @@ def get_data(config, per_reviewer_num_indicators=None, per_paper_num_indicators=
             score_threshold=config['HYPER_PARAMS']['score_threshold'],
             per_reviewer_num_indicators=per_reviewer_num_indicators,
 			per_paper_num_indicators=per_paper_num_indicators)
+
+	# Filter out any reviewers from reviewer_df that are not in paper_reviewer_df
+	existing_reviewers = paper_reviewer_df.index.get_level_values('reviewer').unique()
+	reviewer_df = reviewer_df.reset_index().query('reviewer in @existing_reviewers').set_index('reviewer')
 
 	return MatchingData(
         reviewer_df=reviewer_df,

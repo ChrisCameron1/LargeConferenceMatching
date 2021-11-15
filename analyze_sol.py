@@ -12,6 +12,10 @@ import re
 import itertools
 from dataclasses import dataclass
 from matching_data import get_data
+import logging
+import logging.handlers
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -45,12 +49,13 @@ def get_violation_records(distance_df, solution_df):
                     dict(reviewer_1=a, reviewer_2=b, paper=paper, d=distance)
                 )
 
-    df = pd.DataFrame.from_records(violation_records,columns=['reviewer_1', 'reviewer_2', 'paper', 'd'])
-    print(f"Found {df.query('d == 0')} violations of co-author distance 0 and {df.query('d == 1')} of co-author distance 1")
+    df = pd.DataFrame.from_records(violation_records,columns=['reviewer_1', 'reviewer_2', 'paper', 'd']).drop_duplicates()
+    logger.info(f"Found {len(df.query('d == 0').index)} violations of co-author distance 0 and {len(df.query('d == 1').index)} of co-author distance 1")
     return df
 
         
 def parse_solution(solution_file: str, paper_reviewer_df: pd.DataFrame, reviewer_df: pd.DataFrame) -> ParsedSolution:
+    
     tree = et.parse(solution_file)
 
     region_stats = False
@@ -60,7 +65,7 @@ def parse_solution(solution_file: str, paper_reviewer_df: pd.DataFrame, reviewer
     full_cycles = []
     records = []
 
-    print(f"Parsing solution")
+    logger.info(f"Parsing solution")
     root = tree.getroot()
     for variables in root.iter('variables'):
         for variable in variables.iter('variable'):
@@ -75,28 +80,29 @@ def parse_solution(solution_file: str, paper_reviewer_df: pd.DataFrame, reviewer
                 record = dict(
                     paper = paper,
                     reviewer = reviewer,
-                    score = paper_reviewer_df.loc[(paper,reviewer)]['score'].item(),
+                    score = score,
                     role = r_info['role'].item(),
                     seniority = r_info['seniority'].item(),
+                    region = r_info['region'].item()
                 )
                 records.append(record)
-            elif re.match(r'^re\d+$', name):
+            elif re.match(r'^region\d+$', name):
                 region_stats = True
                 if float(value) > 1e-5:
-                    paper = int(name.replace('re', ''))
+                    paper = int(name.replace('region', ''))
                     regions.append(dict(
                         paper=paper,
                         regions=float(value)
                     ))
-            elif name.startswith('cy'):
+            elif name.startswith('cycle'):
                 cycle_stats = True
                 if float(value) > 1e-5:
-                    paper1, paper2 = name.replace('cy', '').split('_')
+                    paper1, paper2 = name.replace('cycle', '').split('_')
                     cycles.append((int(paper1), int(paper2)))
 
     for constraint in root.iter('constraint'):
         n = constraint.attrib['name']
-        search = re.search(r'^cyc_ip(\d+)_jp(\d+)_i(\d+)_j(\d+)$', n)
+        search = re.search(r'^cycle_ip(\d+)_jp(\d+)_i(\d+)_j(\d+)$', n)
         if search:
             pid1, rid1, pid2, rid2 = search.group(1), search.group(2), search.group(3), search.group(4)
             full_cycles.append(tuple(map(int, (pid1, rid1, pid2, rid2))))
@@ -119,7 +125,7 @@ def vcs_normalized(s, sort_index=True):
 
 def print_dict(d):
     for k, v in d.items():
-        print(f"{k}\t{v}")
+        logger.info(f"{k}\t{v}")
 
 
 POSITIVE_BID = 2
@@ -138,7 +144,7 @@ def distribution_of_positive_bids(expanded_bid_df, frame):
 
 def parse_unassigned_papers(parsed_solution, per_paper_num_indicators, k=None, filename=None):
 
-    print('Updating num indicators for unassigned papers...')
+    logger.info('Updating num indicators for unassigned papers...')
 
     df = parsed_solution.df
 
@@ -173,15 +179,21 @@ def parse_unassigned_papers(parsed_solution, per_paper_num_indicators, k=None, f
 
     return per_paper_num_indicators
     
-# TODO: Write output to results_file
-def analyse_solution(config, solution_file: str , results_file: str):
+def analyse_solution(config, solution_file: str, matching_data=None):
 
-    print(f"Reading solution file {solution_file}")
+    results_file = solution_file.replace('.sol', '_RESULTS.txt')
 
-    matching_data = get_data(config=config)
+    handler = logging.FileHandler(filename=results_file)
+    logger.addHandler(handler)
+
+    logger.info(f"Reading solution file {solution_file}")
+
+    if matching_data is None:
+        matching_data = get_data(config=config)
+
     paper_reviewer_df = matching_data.paper_reviewer_df
     reviewer_df = matching_data.reviewer_df
-
+    distance_df = matching_data.distance_df
     #%%
     parsed_solution = parse_solution(solution_file=solution_file, paper_reviewer_df=paper_reviewer_df, reviewer_df=reviewer_df)
     df = parsed_solution.df
@@ -189,140 +201,145 @@ def analyse_solution(config, solution_file: str , results_file: str):
     #%%
     n_papers = paper_reviewer_df.reset_index()['paper'].nunique()
     n_reviewers = paper_reviewer_df.reset_index()['reviewer'].nunique()
-    print(f"Aggscore matrix is shaped for {n_papers} papers and {n_reviewers} reviewers (all roles). This may not reflect the final counts.")
-    print()
+    logger.info(f"Aggscore matrix is shaped for {n_papers} papers and {n_reviewers} reviewers (all roles). This may not reflect the final counts.")
+    logger.info('')
 
-    print("Reviewer info contains the following role distribution")
-    print(reviewer_df['role'].value_counts())
-    print()
+    logger.info("Reviewer info contains the following role distribution")
+    logger.info(reviewer_df['role'].value_counts())
+    logger.info('')
 
-    print(f"Assigned {df['reviewer'].nunique()} reviewers (all roles) to {df['paper'].nunique()} papers. Some reviewers may have gone unused - check below")
-    print()
+    logger.info(f"Assigned {df['reviewer'].nunique()} reviewers (all roles) to {df['paper'].nunique()} papers. Some reviewers may have gone unused - check below")
+    logger.info('')
 
     unassigned_reviewers = set(reviewer_df.index.values) - set(df['reviewer'].unique())
     unassigned_reviewers_df = reviewer_df.loc[unassigned_reviewers]
-    print("Reviewers by role assigned 0 papers")
-    print(vcs_normalized(unassigned_reviewers_df['role']))
-    print()
+    logger.info("Reviewers by role assigned 0 papers")
+    logger.info(vcs_normalized(unassigned_reviewers_df['role']))
+    logger.info('')
 
 
-    print("Seniority distribution of eligible PCs")
-    print(vcs_normalized(reviewer_df.query('role == "PC"')['seniority']))
-    print()
+    logger.info("Seniority distribution of eligible PCs")
+    logger.info(vcs_normalized(reviewer_df.query('role == "PC"')['seniority']))
+    logger.info('')
 
-    print("Seniority distribution of matched PCs")
-    print(vcs_normalized(df.query('role == "PC"')['seniority']))
-    print()
+    logger.info("Seniority distribution of matched PCs")
+    logger.info(vcs_normalized(df.query('role == "PC"')['seniority']))
+    logger.info('')
 
-    print("Seniority of unassigned PCs")
-    print(vcs_normalized(unassigned_reviewers_df.query('role == "PC"')['seniority']))
-    print()
+    logger.info("Seniority of unassigned PCs")
+    logger.info(vcs_normalized(unassigned_reviewers_df.query('role == "PC"')['seniority']))
+    logger.info('')
 
-    print("Mean, median, min and max match score of each reviewer-paper assignment")
-    print(df['score'].describe())
-    print()
+    logger.info("Mean, median, min and max match score of each reviewer-paper assignment")
+    logger.info(df['score'].describe())
+    logger.info('')
 
 
     for role, group in df.groupby('role'):
-        print(f"Mean, median, min and max match score of each reviewer-paper assignment by role: {role}")    
-        print(group['score'].describe())
-        print()
+        logger.info(f"Mean, median, min and max match score of each reviewer-paper assignment by role: {role}")    
+        logger.info(group['score'].describe())
+        logger.info('')
 
     #%%
-    print("Mean, median, min and max of mean match-score for each paper (PC-ONLY).")
-    print(df.query('role == "PC"').groupby('paper')['score'].mean().describe())
-    print()
+    logger.info("Mean, median, min and max of mean match-score for each paper (PC-ONLY).")
+    logger.info(df.query('role == "PC"').groupby('paper')['score'].mean().describe())
+    logger.info('')
 
-    print("Mean, median, min and max of min match-score for each paper (PC-ONLY)")
-    print(df.query('role == "PC"').groupby('paper')['score'].min().describe())
-    print()
+    logger.info("Mean, median, min and max of min match-score for each paper (PC-ONLY)")
+    logger.info(df.query('role == "PC"').groupby('paper')['score'].min().describe())
+    logger.info('')
 
-    print("Mean, median, min and max of mean match-score for each paper.")
-    print(df.groupby('paper')['score'].mean().describe())
-    print()
+    logger.info("Mean, median, min and max of mean match-score for each paper.")
+    logger.info(df.groupby('paper')['score'].mean().describe())
+    logger.info('')
 
-    print("Mean, median, min and max of min match-score for each paper.")
-    print(df.groupby('paper')['score'].min().describe())
-    print()
+    logger.info("Mean, median, min and max of min match-score for each paper.")
+    logger.info(df.groupby('paper')['score'].min().describe())
+    logger.info('')
 
     for role in df['role'].unique():
         role_df = df.query(f'role == "{role}"')
         for thresh in [0.5, 0.3, 0.15, 0.000001]:
             min_scores = role_df.groupby('paper')['score'].min()
             val = (min_scores <= thresh).sum()
-            print(f"Number of papers with a {role} with score <= {thresh}: {val}")    
-    print()
+            logger.info(f"Number of papers with a {role} with score <= {thresh}: {val}")    
+    logger.info('')
 
 
     #%%
-    print("Minimum seniority of papers distribution (PC)")
-    min_pc_seniority = df.query('role == "PC"').groupby('paper')['seniority'].min()
-    print(min_pc_seniority.value_counts().sort_index())
-    print()
+    logger.info("Maximum seniority of papers distribution (PC)")
+    max_pc_seniority = df.query('role == "PC"').groupby('paper')['seniority'].max()
+    logger.info(max_pc_seniority.value_counts().sort_index())
+    logger.info('')
 
-    print("Minimum seniority of papers distribution (PC + SPC)")
-    min_seniority = df.groupby('paper')['seniority'].min()
-    print(vcs_normalized(min_seniority))
-    print()
+    logger.info("Maximum seniority of papers distribution (PC + SPC)")
+    max_seniority = df.groupby('paper')['seniority'].max()
+    logger.info(vcs_normalized(max_seniority))
+    logger.info('')
 
-    print(f"Papers with a min PC seniority of 3 or higher: {', '.join(map(str, min_pc_seniority[min_pc_seniority >= 3].index.values))}")
-    print()
+    logger.info(f"Papers with a max PC seniority of 1 or lower: {', '.join(map(str, max_pc_seniority[max_pc_seniority <= 1].index.values))}")
+    logger.info('')
 
     #%%
     for role in reviewer_df['role'].unique():
         vc = df.query(f'role == "{role}"').groupby('reviewer').size().value_counts().sort_index()
         vcd = vc.to_dict()
-        vcd[0] = reviewer_info.loc[unassigned_reviewers]['role'].value_counts().sort_index().to_dict().get(role, 0)
-        print(f"Distribution of number of papers assigned to {role} reviewers")
+        vcd[0] = reviewer_df.loc[unassigned_reviewers]['role'].value_counts().sort_index().to_dict().get(role, 0)
+        logger.info(f"Distribution of number of papers assigned to {role} reviewers")
         print_dict(vcd)
-        print()
+        logger.info('')
 
 
     def review_distribution(frame, role):
-        print(f"Distribution of number of reviews per paper by role {role}")
+        logger.info(f"Distribution of number of reviews per paper by role {role}")
         vcs = frame.groupby('paper').size().value_counts().sort_index().to_dict()
-        vcs[0] = len(set(paper_reviewer_df.reset_index()['paper'].unique().values) - set(frame['paper'].unique()))
+        vcs[0] = len(set(paper_reviewer_df.reset_index()['paper'].unique()) - set(frame['paper'].unique()))
         print_dict(vcs)
-        expected_reviews = n_papers * (config['HYPER_PARAMS'][f'max_papers_per_reviewer_{role}'])
-        print(f"This role was assigned {len(frame)} reviews. Required: {expected_reviews}. Missing {expected_reviews - len(frame)}")
-        print()
+        expected_reviews = n_papers * (config['HYPER_PARAMS'][f'max_reviews_per_paper_{role}'])
+        logger.info(f"This role was assigned {len(frame)} reviews. Required: {expected_reviews}. Missing {expected_reviews - len(frame)}")
+        logger.info('')
 
     for role in reviewer_df['role'].unique().tolist():
         review_distribution(df.query(f'role == "{role}"'), role) 
 
 
-    violation_records_df = get_violation_records(info, df)
-    couathor_violation_file = args.solution_file.replace('.sol', '_coauthor_violations.csv')
-    print(f'Writing exact coauthor violations to {couathor_violation_file}')
+    violation_records_df = get_violation_records(distance_df, df)
+    couathor_violation_file = solution_file.replace('.sol', '_coauthor_violations.csv')
+    logger.info(f'Writing exact coauthor violations to {couathor_violation_file}')
     violation_records_df.to_csv(couathor_violation_file, index=False)
 
     if parsed_solution.region_stats:
         # Check if 'regions' columns exist in dataframe
         if 'regions' in parsed_solution.region_df.columns:
             # NOTE: Region constraints only get imposed on "popular" areas
-            print("Distribution of unique region reviewers (all roles) for each popular area paper")
-            print(parsed_solution.region_df['regions'].value_counts().sort_index())
+            logger.info("Distribution of unique region reviewers (all roles) for each popular area paper")
+            logger.info(parsed_solution.region_df['regions'].value_counts().sort_index())
 
-            bad_region_pids = parsed_solution.region_df.query('regions <= 2')['paper'].values
-            print(f"Papers with 2 or fewer regions: {', '.join(map(str, bad_region_pids))}")
-            print()
+            bad_region_pids = parsed_solution.region_df.query('regions <= 1')['paper'].values
+            logger.info(f"Papers with 1 or fewer regions: {', '.join(map(str, bad_region_pids))}")
+            logger.info('')
 
     if parsed_solution.cycle_stats:
-        print(f"{len(parsed_solution.cycles)} papers violate cyclic review constraint")
-        print(f"Reviewer cycles: {parsed_solution.cycles}")
-        print()
+        logger.info(f"{len(parsed_solution.cycles)} papers violate cyclic review constraint")
+        logger.info(f"Reviewer cycles: {parsed_solution.cycles}")
+        logger.info('')
         for cycle in parsed_solution.full_cycles:
             pid1, rid1, pid2, rid2 = cycle
             if len(df.query(f'reviewer == {rid1} and paper == {pid1}')) > 0 and len(df.query(f'reviewer == {rid2} and paper == {pid2}')) > 0:
-                print(f"VIOLATED CYCLE {cycle}")
+                logger.info(f"VIOLATED CYCLE {cycle}")
 
 
-    print("Hyper parameters used:")
+    logger.info("Hyper parameters used:")
     print_dict(config['HYPER_PARAMS'])
 
     # Write out final solution to file to send back
-    final_solution_prefix = args.solution_file.replace('.sol', '_matching')
-    paper_df.to_csv('%s.csv' % final_solution_prefix, index=False)
+    final_solution_prefix = solution_file.replace('.sol', '_matching')
+    df.to_csv('%s.csv' % final_solution_prefix, index=False)
+
+    logger.removeHandler(handler)
+
+    return parsed_solution, violation_records_df
+
 
 
 if __name__ == "__main__":

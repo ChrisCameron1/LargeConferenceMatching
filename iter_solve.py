@@ -47,7 +47,7 @@ def create_initial_per_reviewer_num(reviewer_df, k):
     per_reviewer_num['window_end'] = per_reviewer_num['role'].map(role_2_multiplier) * k  - 1
     return per_reviewer_num
 
-def setup_logging():
+def setup_logging(filename):
     logging.config.dictConfig(
         {
             "version": 1,
@@ -58,7 +58,7 @@ def setup_logging():
             },
             "handlers": {
                 "console": {"class": "logging.StreamHandler", "formatter": "console"},
-                "file": {"class": "logging.FileHandler", "formatter": "file", "filename": "mip.log"},
+                "file": {"class": "logging.FileHandler", "formatter": "file", "filename": filename},
             },
             "loggers": {"": {"level": "INFO", "handlers": ["console", "file"]}},
         }
@@ -66,10 +66,9 @@ def setup_logging():
 
 def main(output_files_prefix='itertest', 
         config=None,
-        include_d1=False, 
         num_coreview_vars=None,
         master_conflicts_file=None,
-        rebuild=False,
+        rebuild_scores_file=False,
         initial_solution=None,
         fixed_variable_solution_file=None,
         abstol=None,
@@ -82,26 +81,36 @@ def main(output_files_prefix='itertest',
         no_iterate=False,
         max_iter=1000000000):
 
-    setup_logging()
-    matching_data = get_data(config=config)
+    setup_logging(output_files_prefix + '.log')
+    matching_data = get_data(config=config, rebuild_scores_file=rebuild_scores_file)
     paper_reviewer_df = matching_data.paper_reviewer_df
     reviewer_df = matching_data.reviewer_df
     distance_df = matching_data.distance_df
 
+
     if valid_reviewers_file:
+        logger.info('Filtering by valid reviewers...')
         valid_reviewers = pd.read_csv(valid_reviewers_file)['reviewer'].values
+        # Filter by valid reviewers
+        reviewer_df = reviewer_df.query('reviewer in @valid_reviewers')
+        distance_df = distance_df.query('reviewer_1 in @valid_reviewers and reviewer_2 in @valid_reviewers')
+        paper_reviewer_df = paper_reviewer_df.query('reviewer in @valid_reviewers')
 
     if valid_papers_file:
+        logger.info('Filtering by valid papers...')
         valid_papers = pd.read_csv(valid_papers_file)['paper'].values
+        paper_reviewer_df = paper_reviewer_df.query('paper in @valid_papers')
+
+
 
     master_conflict_coreview_vars = set()
     if master_conflicts_file is not None:
         df = pd.read_csv(master_conflicts_file)
         master_conflict_coreview_vars = set(zip(df.rid1, df.rid2, df.pid))
-        print("Read %d conflicts from master conflict file: %s" % (len(df.index), master_conflicts_file))
+        logger.info("Read %d conflicts from master conflict file: %s" % (len(df.index), master_conflicts_file))
 
     if num_coreview_vars is not None:
-        subsample_co_review_vars = set(get_coreview_vars(config=config, distance_df=distance_df, paper_reviewer_df=paper_reviewer_df,num_coreview_vars=num_coreview_vars,d1=include_d1,valid_papers=valid_papers, valid_reviewers=valid_reviewers))
+        subsample_co_review_vars = set(get_coreview_vars(config=config, distance_df=distance_df, paper_reviewer_df=paper_reviewer_df,num_coreview_vars=num_coreview_vars,d1=config['HYPER_PARAMS']['include_d1'],valid_papers=valid_papers, valid_reviewers=valid_reviewers))
     else:
         subsample_co_review_vars = set()
 
@@ -142,59 +151,59 @@ def main(output_files_prefix='itertest',
             found = True
             break
     if found:
-        print(f"Resuming from iteration {i}. Note that this might be 0 if you were part way through that iter")
+        logger.info(f"Resuming from iteration {i}. Note that this might be 0 if you were part way through that iter")
         config_file = gen_problem_path(j, suffix='.yml')
 
         try:
             tuple_path = gen_problem_path(j, suffix=CONFLICT_SUFFIX)
-            print(f"Reading bad tuples from {tuple_path}")
+            logger.info(f"Reading bad tuples from {tuple_path}")
             old_tuples = pd.read_csv(tuple_path)
             for r in old_tuples.itertuples():
                 existing_pairs.add((r.j, r.jp, r.pid))
         except:
-            print("Could not read a previous conflict file. Starting up variables from scratch")
+            logger.info("Could not read a previous conflict file. Starting up variables from scratch")
 
         try:
             per_paper_num_indicators_file = gen_problem_path(j, suffix=NUM_VARIABLE_INDICATORS_SUFFIX)
             per_paper_num_indicators = pd.read_csv(per_paper_num_indicators_file).set_index('paper')
         except:
-            print("Could not read a previous num variables indicators file. Starting up setting num indicators to %d" % k)
+            logger.info(f"Could not read a previous num variables indicators file. Starting up setting num indicators to {config['HYPER_PARAMS']['sparsity_k']}")
 
         per_reviewer_num_file = gen_problem_path(j, suffix=NUM_REVIEWER_SUFFIX)
         if os.path.isfile(per_reviewer_num_file):
             per_reviewer_num = pd.read_csv(per_reviewer_num_file)
         else:
-            print(f"Could not read a previous per_reviewer_num_file. Looked for {per_reviewer_num_file}")
+            logger.info(f"Could not read a previous per_reviewer_num_file. Looked for {per_reviewer_num_file}")
 
     else:
-        print("No previous iterations found. Starting from the beginning at i=0")
+        logger.info("No previous iterations found. Starting from the beginning at i=0")
 
     if per_reviewer_num is None:
         per_reviewer_num = create_initial_per_reviewer_num(reviewer_df, config['HYPER_PARAMS']['sparsity_k'])
 
     while True:
-        print(f"Starting iteration {i}")
+        logger.info(f"Starting iteration {i}")
 
         # Step 1: Create ILP
-        print(f"Step 1: Problem generation")
+        logger.info(f"Step 1: Problem generation")
         ilp_file = gen_problem_path(i)
         if os.path.exists(ilp_file):
-            print(f"Skipping problem generation since path exists {ilp_file}")
+            logger.info(f"Skipping problem generation since path exists {ilp_file}")
         else:
-            co_review_vars_to_use = existing_pairs|(d0_pairs|d1_pairs if include_d1 else d0_pairs)
+            co_review_vars_to_use = existing_pairs|(d0_pairs|d1_pairs if config['HYPER_PARAMS']['include_d1'] else d0_pairs)
 
-            print(f"Writing out bad tuples of reviewer/reviewer/papers")
-            to_block = pd.DataFrame(list(co_review_vars_to_use), columns=['j', 'jp', 'pid'])
-            to_block.to_csv(gen_problem_path(i, suffix=CONFLICT_SUFFIX) , index=False)
+            logger.info(f"Writing out bad tuples of reviewer/reviewer/papers")
+            # to_block = pd.DataFrame(list(co_review_vars_to_use), columns=['j', 'jp', 'pid'])
+            # to_block.to_csv(gen_problem_path(i, suffix=CONFLICT_SUFFIX) , index=False)
 
             ilp = MatchingILP(paper_reviewer_df,reviewer_df,distance_df,config,co_review_vars_to_use,output_files_prefix=output_files_prefix,add_soft_constraints=add_soft_constraints,fixed_variable_solution_file=fixed_variable_solution_file)
-            ilp_file = ilp.create_ilp()
+            ilp.create_ilp(lp_filename=ilp_file)
 
         # Step 2 Solve ILP with warm start
-        print(f"Step 2: Solving problem")
+        logger.info(f"Step 2: Solving problem")
         solution_file = ilp_file.replace('.lp', '.sol')
         if os.path.exists(solution_file):
-            print(f"Skipping problem solving since path exists: {solution_file}")
+            logger.info(f"Skipping problem solving since path exists: {solution_file}")
         else:
             if i == 0 and initial_solution is not None:
                 warm_start = initial_solution
@@ -203,20 +212,20 @@ def main(output_files_prefix='itertest',
             else:
                 warm_start = gen_problem_path(i - 1, suffix='.sol')
             # TODO: paramterize abstol
-            print(f'Abstol:{abstol}')
-            print(f'Relative MIP Gap:{relative_mip_gap}')
+            logger.info(f'Abstol:{abstol}')
+            logger.info(f'Relative MIP Gap:{relative_mip_gap}')
             solution_file = solve(ilp_file, warm_start=warm_start,abstol=abstol, relative_mip_gap=relative_mip_gap)
             results_file = solution_file.replace('.sol', '_RESULTS.txt')
-            analyse_solution(config, solution_file, results_file)
+        
+        # Step 3: Analyze solution
+        logger.info(f"Step 3: Parse and Analyze solution")
+        parsed_solution, violation_df = analyse_solution(config, solution_file, matching_data=matching_data)
 
-        # Step 3: Parse conflicts and update pairs
-        print(f"Step 3: Update constraints")
-        parsed_solution = parse_solution(solution_file=solution_file, paper_reviewer_df=paper_reviewer_df, reviewer_df=reviewer_df)
-        violation_df = get_violation_records(distance_df, parsed_solution.df)
-        # get_violation_records(distance_df, solution_df):
+        # Step 4: Parse conflicts and update pairs
+        logger.info(f"Step 4: Update constraints")
         violated_d0_pairs = list(violation_df.query('d == 0').drop('d',axis=1).itertuples(index=False))
         violated_d1_pairs = list(violation_df.query('d == 1').drop('d',axis=1).itertuples(index=False))
-        print(f'{len(violated_d0_pairs)} d0 and {len(violated_d1_pairs)} d1 coauthor constraints violated.')
+        logger.info(f'{len(violated_d0_pairs)} d0 and {len(violated_d1_pairs)} d1 coauthor constraints violated.')
 
         update_unused_reviewers(per_reviewer_num, reviewer_df, parsed_solution.df, config['HYPER_PARAMS']['sparsity_k'], filename=gen_problem_path(i, NUM_REVIEWER_SUFFIX))
         per_paper_num_indicators = parse_unassigned_papers(parsed_solution, per_paper_num_indicators, k=config['HYPER_PARAMS']['sparsity_k'], filename=gen_problem_path(i, NUM_VARIABLE_INDICATORS_SUFFIX))
@@ -253,23 +262,23 @@ def main(output_files_prefix='itertest',
         # Need to take into account existing vars
 
         if not add_soft_constraints:
-            print(f'Soft constraints turned off. No row generation. Terminating...')
+            logger.info(f'Soft constraints turned off. No row generation. Terminating...')
             break
         if no_iterate:
-            print('Iterating turned off. Terminating...')
+            logger.info('Iterating turned off. Terminating...')
             break
         # Terminate if no new correview conflict were added
         if (len(d0_pairs) == d0_pairs_size and len(d1_pairs) == d1_pairs_size):
-            print(f'No more coauthor constraints to add. Terminated at iteration {i} with {len(d0_pairs)} d0 and {len(d1_pairs)} d1 coauthor constraints')
+            logger.info(f'No more coauthor constraints to add. Terminated at iteration {i} with {len(d0_pairs)} d0 and {len(d1_pairs)} d1 coauthor constraints')
             break
 
         # # Test with existing coreviews
         # if len(existing_pairs) > 0:#len(d0_pairs.difference(existing_pairs)) == 0 and len(d1_pairs.difference(existing_pairs)) == 0 :
-        #     print(f'There were existing pairNo more coauthor constraints to add given initial constraints. Terminated at iteration {i} with {len(d0_pairs)} d0 and {len(d1_pairs)} d1 coauthor constraints')
+        #     logger.info(f'There were existing pairNo more coauthor constraints to add given initial constraints. Terminated at iteration {i} with {len(d0_pairs)} d0 and {len(d1_pairs)} d1 coauthor constraints')
         #     break
 
         if i >= max_iter:
-            print(f'Exceeded max iteration of {max_iter}')
+            logger.info(f'Exceeded max iteration of {max_iter}')
             break
 
         i += 1
@@ -282,14 +291,14 @@ if __name__ == '__main__':
     #### Experiment parameters
     parser.add_argument('--output_files_prefix', type=str, default='itertest')
     parser.add_argument('--config_file', type=str, default='config.yml')
-    parser.add_argument('--rebuild', action='store_true')
+    parser.add_argument('--rebuild_scores_file', action='store_true')
     parser.add_argument('--fixed_variable_solution_file',type=str, default=None)
     parser.add_argument('--relax_paper_capacity', action='store_true')
     parser.add_argument('--valid_papers_file', type=str, default=None)
     parser.add_argument('--valid_reviewers_file', type=str, default=None)
 
     #### Row/column geneneration parameters ####
-    parser.add_argument('--sparsity_k', type=int, default=10)
+    parser.add_argument('--sparsity_k', type=int, default=50)
     parser.add_argument('--score_threshold', type=float, default=0.0)
     parser.add_argument('--num_coreview_vars', type=int, default=None)
     parser.add_argument('--master_conflicts_file', type=str, default=None)
@@ -315,8 +324,8 @@ if __name__ == '__main__':
     # Coreview
     parser.add_argument('--coreview_dis0_pen', type=float, default=None)
     parser.add_argument('--coreview_dis1_pen', type=float, default=None)
-    parser.add_argument('--remove_non_symmetric', action='store_true')
-    parser.add_argument('--include_d1', action='store_true')
+    parser.add_argument('--remove_non_symmetric', action='store_true', default=True)
+    parser.add_argument('--include_d1', action='store_true', default=True)
     # Cycle
     parser.add_argument('--cycle_pen', type=float, default=None)
     # Paper distribution
@@ -331,9 +340,10 @@ if __name__ == '__main__':
     with open(args.config_file, 'rb') as fh:
         config = yaml.load(fh,Loader=yaml.FullLoader)
 
+    argv = [x.replace('--','') for x in sys.argv]
 
     for arg in vars(args):
-        if arg in sys.argv:
+        if arg in argv:
             name = arg
             value = getattr(args, arg)
 
@@ -342,11 +352,10 @@ if __name__ == '__main__':
 
     main(output_files_prefix=args.output_files_prefix,
         config=config,
-        include_d1=args.include_d1, 
         num_coreview_vars=args.num_coreview_vars,
         master_conflicts_file=args.master_conflicts_file,
         initial_solution=args.initial_solution,
-        rebuild=args.rebuild,
+        rebuild_scores_file=args.rebuild_scores_file,
         fixed_variable_solution_file=args.fixed_variable_solution_file,
         abstol=args.abstol,
         relative_mip_gap=args.relative_mip_gap,

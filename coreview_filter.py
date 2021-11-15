@@ -1,7 +1,6 @@
 import yaml
 import numpy as np
 import pandas as pd
-from scripts import *
 import sys
 import itertools
 from tqdm import tqdm
