@@ -19,28 +19,28 @@ COAUTHOR_DISTANCE_FILE: 'data/distances.csv'
 
 The `.csv` files should have the following headers and data format:
 - `RAW_SCORES_FILE`
-**Header**: `paper,reviewer,ntpms,nacl,nk,tpms,acl,k`
-**Data types**:
-`paper/reviewer`: int (unique indentifier for every paper/reviewer)
+**Header**: `paper,reviewer,ntpms,nacl,nk,tpms,acl,k`\
+**Data types**:\
+`paper/reviewer`: int (unique indentifier for every paper/reviewer)\
 `ntpms,nacl,nk,tpms,acl,k`: float (any real number. The `n` represent the normalizes version of each of tpms,acl, and k (keywords))
-- `BIDS_FILE`
-**Header**: `paper,reviewer,bid`
-**Data types**:
-`paper/reviewer`: int (unique indentifier for every paper/reviewer)
+- `BIDS_FILE`\
+**Header**: `paper,reviewer,bid`\
+**Data types**:\
+`paper/reviewer`: int (unique indentifier for every paper/reviewer)\
 `bid`: float (0.05,1,2,4,6: not willing , not entered, in a pinch, willing, eager)
-- `REVIEWERS_FILE`
-**Header**: `reviewer,role,seniority,conflict_papers,region,authored`
-**Data types**:
-`reviewer`: int (unique indentifier for every paper/reviewer)
-`role`: 'AC', 'SPC', or 'PC'
-`seniority`: 0,1,2,3
-`conflict_paper`: list of papers (e.g., [0,1,2])
-`region`: string representing region (e.g., US)
+- `REVIEWERS_FILE`\
+**Header**: `reviewer,role,seniority,conflict_papers,region,authored`\
+**Data types**:\
+`reviewer`: int (unique indentifier for every paper/reviewer)\
+`role`: 'AC', 'SPC', or 'PC'\
+`seniority`: 0,1,2,3\
+`conflict_paper`: list of papers (e.g., [0,1,2])\
+`region`: string representing region (e.g., US)\
 `authored`: list of papers the reviewer authored (e.g., [0,1,2])
-- `COAUTHOR_DISTANCE_FILE`
-**Header**: `reviewer_1,reviewer_2,distance`
-**Data types**:
-`reviewer_1/reviewer_2`: int (unique indentifier for every reviewer)
+- `COAUTHOR_DISTANCE_FILE`\
+**Header**: `reviewer_1,reviewer_2,distance`\
+**Data types**:\
+`reviewer_1/reviewer_2`: int (unique indentifier for every reviewer)\
 `distance`: 0 for direct coauthors, 1 for once removed
 
 There is an addition filepath needed for writing the computed scores to file (for caching on subsequent runs):
@@ -102,3 +102,6 @@ When each stage completes, you will find the following files in `dir` with prefi
     `_indicator.pkl`- Indicator matrix (cached if you rerun)
     `_matching.csv` - Main output file. Columns are `paper,reviewer,role,score,seniority`.
     `_RESULTS.txt` - Solution analysis script 
+
+
+
