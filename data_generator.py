@@ -73,9 +73,9 @@ def main(n_papers=1000, n_reviewers=3000, n_regions=5, output_dir='fake_data'):
         'reviewer': reviewers,
         'paper': papers
     })
-    # Zero out a bunch of entires to mimic COIs or unqualified reviewers
+    # Zero out a bunch of entires to mimic unqualified reviewers. Additional reviewers will get zeroed out because of the threshold later too.
     score_columns = ['ntmps', 'nacl', 'nk']
-    zero_percentage = 0.75
+    zero_percentage = 0.5
     should_zero = np.random.binomial(1, zero_percentage, n_reviewers * n_papers)
     scores_df.loc[should_zero, score_columns] = 0
     scores_df.to_csv(f'{output_dir}/scores.csv', index=False)
