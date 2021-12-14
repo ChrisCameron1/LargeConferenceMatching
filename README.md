@@ -19,10 +19,10 @@ COAUTHOR_DISTANCE_FILE: 'data/distances.csv'
 
 The `.csv` files should have the following headers and data format:
 - `RAW_SCORES_FILE`
-**Header**: `paper,reviewer,ntpms,nacl,nk,tpms,acl,k`\
+**Header**: `paper,reviewer,ntpms,nacl,nk`\
 **Data types**:\
 `paper/reviewer`: int (unique indentifier for every paper/reviewer)\
-`ntpms,nacl,nk,tpms,acl,k`: float (any real number. The `n` represents the normalized version of each of tpms,acl, and k (keywords). See paper for description of normalization.)
+`ntpms,nacl,nk`: float (any real number. The `n` represents the normalized version of each of tpms,acl, and k (keywords). See paper for description of normalization.)
 - `BIDS_FILE`\
 **Header**: `paper,reviewer,bid`\
 **Data types**:\
