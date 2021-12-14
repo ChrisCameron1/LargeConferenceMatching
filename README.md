@@ -90,8 +90,7 @@ CACHED_SCORES_FILE: 'data/cached_scores.csv'
 
 When each stage completes, you will find the following files in `dir` with prefix `experiment_name`_iter_`iteration`]: 
     
-    `_time.csv` - Walltime
-    `_status.csv` - dictionary of time (walltime), status (CPLEX status), objective (CPLEX objective), and full_objective (objective after adding full constraint set)
+    `_status.json` - dictionary of time (walltime), status (CPLEX status), objective (CPLEX objective), and full_objective (objective after adding full constraint set)
     `.sol` - CPLEX solution file (for warm starting / analyzing)
     `.yml` - your config
     `_under_capacity_papers.csv` - Papers that were under the max review
