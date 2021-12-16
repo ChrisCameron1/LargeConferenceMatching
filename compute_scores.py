@@ -49,7 +49,7 @@ def compute_scores(config=None):
     scores = pd.read_csv(config['RAW_SCORES_FILE']).set_index(['paper','reviewer'])
     bids = pd.read_csv(config['BIDS_FILE']).set_index(['paper','reviewer'])
     scores = scores.join(bids)
-    scores['bid'] = scores['bid'].fillna(0)
+    scores['bid'] = scores['bid'].fillna(config['DEFAULT_BID_WHEN_NO_BIDS'])
 
     scores = get_scores(config,scores)
     scores = scores[['score']]

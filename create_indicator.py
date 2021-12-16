@@ -58,24 +58,28 @@ def create_paper_reviewer_df(scores_df=None,
 
 	# Sort dataframe by scores
 	logger.info('Sorting scores...')
-	scores_df = scores_df.sort_values(by=['score'],ascending=False)
+	scores_df = scores_df = scores_df.sort_values(by=['score'],ascending=False)
+	# Set scores_df index to reviewer
+	scores_df.reset_index().set_index('reviewer')
 	dfs=[]
 	# Add k best papers per reviewer
 	missing_count = {'PC': 0, 'SPC':0, 'AC':0}
 	for reviewer in tqdm(reviewers, desc='Adding best papers for reviewers'):
 		reviewer_k = per_reviewer_num_indicators.loc[reviewer, 'k']
 		role = reviewer_df.loc[reviewer]['role']
-		k_reviewers_to_add = scores_df.query(f'reviewer == {reviewer}').head(reviewer_k)
+		k_reviewers_to_add = scores_df.loc[reviewer].head(reviewer_k)
 		dfs.append(k_reviewers_to_add)
 
 	for role in ["PC","SPC","AC"]:
 		logger.info(f'{missing_count[role]} {role} reviewers with no papers')
 
+	# Set scores_df index to paper
+	scores_df = scores_df.reset_index().set_index('paper')
 	# Add k best reviewers per paper
 	papers_to_delete=[]
 	missing_count = {'PC': 0, 'SPC':0, 'AC':0}
 	for paper in tqdm(papers,desc='Adding best reviewers for papers'):
-		paper_df = scores_df.query(f"paper == {paper}")
+		paper_df = scores_df.loc['paper']
 		for role in ["PC","SPC","AC"]:
 			paper_k = per_paper_num_indicators.loc[paper][f'{role}_k']
 			k_reviewers_to_add = paper_df.query(f'role == "{role}"').head(paper_k)
@@ -86,7 +90,6 @@ def create_paper_reviewer_df(scores_df=None,
 			dfs.append(k_reviewers_to_add)
 	for role in ["PC","SPC","AC"]:
 		logger.info(f'{missing_count[role]} papers with no {role} reviewers')
-
 
 	paper_reviewer_df = pd.concat(dfs)
 	paper_reviewer_df = paper_reviewer_df.reset_index().drop_duplicates().set_index(['paper','reviewer'])

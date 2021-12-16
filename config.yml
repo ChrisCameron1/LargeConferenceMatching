@@ -6,9 +6,9 @@ COAUTHOR_DISTANCE_FILE: 'data/distances.csv'
 
 NAN_AS_ZERO_SCORE: False
 POSITIVE_BID_THR:  4
-DEFAULT_BID_WHEN_NO_BIDS: 2 #rubric: 0.05,1,2,4,6: not willing , not entered, in a pinch, willing, eager
+DEFAULT_BID_WHEN_NO_BIDS: 1 #rubric: 0.05,1,2,4,6: not willing , not entered, in a pinch, willing, eager
 HYPER_PARAMS:
-    'sparsity_k': 10
+    'sparsity_k': 50
     'score_threshold': 0.15 
     'max_reviews_per_paper_PC': 2
     'max_reviews_per_paper_SPC': 1
