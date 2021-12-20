@@ -56,11 +56,14 @@ def create_paper_reviewer_df(scores_df=None,
 	# TODO: very slow!
 	scores_df = scores_df.drop(index=to_delete, errors='ignore') # Only existing labels are dropped
 
+	reviewers = scores_df.index.unique('reviewer').values
+	papers = scores_df.index.unique('paper').values
+
 	# Sort dataframe by scores
 	logger.info('Sorting scores...')
 	scores_df = scores_df = scores_df.sort_values(by=['score'],ascending=False)
 	# Set scores_df index to reviewer
-	scores_df.reset_index().set_index('reviewer')
+	scores_df = scores_df.reset_index().set_index('reviewer')
 	dfs=[]
 	# Add k best papers per reviewer
 	missing_count = {'PC': 0, 'SPC':0, 'AC':0}
@@ -79,7 +82,7 @@ def create_paper_reviewer_df(scores_df=None,
 	papers_to_delete=[]
 	missing_count = {'PC': 0, 'SPC':0, 'AC':0}
 	for paper in tqdm(papers,desc='Adding best reviewers for papers'):
-		paper_df = scores_df.loc['paper']
+		paper_df = scores_df.loc[paper]
 		for role in ["PC","SPC","AC"]:
 			paper_k = per_paper_num_indicators.loc[paper][f'{role}_k']
 			k_reviewers_to_add = paper_df.query(f'role == "{role}"').head(paper_k)
