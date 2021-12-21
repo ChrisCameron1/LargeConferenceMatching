@@ -1,3 +1,29 @@
+
+
+"""
+This module extracts the conflicts between paper and reviewers. The following rules are implemented:
+
+(1) Between every two authors compute DBLP co-authorship based COI:
+Disregard papers with more than 7 authors
+If two people co-authored a paper in last five years COI = 1
+If two people co-authored more than 6 papers together at any time COI = 1
+If Person 1 is senior to Person 2 and they co-authored several early papers of Person 2, COI = 1. (Here the guess is that Person 1 is the advisor)
+We could conceivably also say that Person 2 has COI with all co-authors of Person 1… not sure if it becomes too extreme.
+Else COI = 0
+
+(2) Between every two authors COI = 1 if one of the authors expressed COI explicitly or with the email domain
+As an exception we will look at self-reported COIs, and check manually if
+A user has an unreasonable number (8) of domains  as COI domains 
+A user has an unreasonable number (15) of non co-authors as COIs 
+A user has a large number of self-reported COIs (10) where the COIs’ don’t have this user as a COI in their self-reports
+(3) Between each pair of co-authors in AAAI2021 submissions, declare COI=1
+(4) If COI between two people is 1, then COI between one and papers written by the other is also 1
+
+"""
+
+
+
+
 import numpy as np
 import pandas as pd
 import sys
