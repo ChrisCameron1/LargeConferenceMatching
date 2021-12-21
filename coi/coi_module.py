@@ -1,7 +1,9 @@
 
 
 """
-This module extracts the conflicts between paper and reviewers. The following rules are implemented:
+This module extracts the conflicts between paper and reviewers. 
+
+The following rules are implemented:
 
 (1) Between every two authors compute DBLP co-authorship based COI:
 Disregard papers with more than 7 authors
