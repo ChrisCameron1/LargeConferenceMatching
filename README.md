@@ -5,7 +5,7 @@ To execute, can run the following commands:
 ```
 cd LargeConferenceMatching
 mkdir results
-python iter_solve.py --config_file config.yml --basename ./results/
+python iter_solve.py --config_file config.yml --output_files_prefix ./results/
 ```
 
 The .yml must contain filepaths to four data files as so:
@@ -86,7 +86,7 @@ CACHED_SCORES_FILE: 'data/cached_scores.csv'
 
 # Output Files
 
-`--basename` param set to be [dir/experiment_name].
+`--output_files_prefix` param set to be [dir/experiment_name].
 
 When each stage completes, you will find the following files in `dir` with prefix `experiment_name`_iter_`iteration`]: 
     
