@@ -1,0 +1,3 @@
+1,johndoe.ac.1@foobar.com,0.2229195190843693
+2,johndoe.ac.1@foobar.com,0.1922508527870535
+3,johndoe.ac.1@foobar.com,0.18498010077154703
