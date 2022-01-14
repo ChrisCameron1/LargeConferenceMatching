@@ -1,0 +1,18 @@
+
+sa_file_list: ['data/scores/20201014/subject_scores.txt']
+
+tpms_file_list:
+    - 'data/scores/20201014/AC_AAAI.csv' 
+    - 'data/scores/20201014/SPC_AAAI.csv'
+    - 'data/scores/20201014/PC_AAAI.csv'              
+    - 'data/scores/20201014/PC_AISI.csv'
+    - 'data/scores/20201014/SPC_AISI.csv'
+    - 'data/scores/20201014/AC_FT.csv'
+    - 'data/scores/20201014/SPC_FT.csv'
+    - 'data/scores/20201014/PC_FT.csv'
+
+acl_file_list: ['data/scores/20201014/acl_scores_for_ilp_phase_2.csv']
+
+output_file:  'data/scores/20201014/dummy_normalized_raw_scores_20201014.tsv'
+
+
