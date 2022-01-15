@@ -1,0 +1,36 @@
+#track1
+papers_path : "../exports/Papers.xls"
+paper_sheet : 1 ##TODO: ADD A SANITY CHECK TO MAKE SURE IT IS TRACK 1
+reviewers_path : "../exports/Reviewers-1.txt"
+meta_reviewers_path : "../exports/MetaReviewers-1.txt"
+subjects_track : "./helper_data/SecondaryAreas_track1_.txt" #Have MAX_SUBJECT_LENGTH
+
+#track2
+papers_path_t2 : "../exports/Papers.xls"
+paper_sheet_t2 : 0
+reviewers_path_t2 : "../exports/Reviewers-2.txt"
+meta_reviewers_path_t2 : "../exports/MetaReviewers-2.txt"
+subjects_track_t2 : "./helper_data/SecondaryAreas_track2_.txt"
+
+#track3
+papers_path_t3 : "../exports/Papers.xls"
+paper_sheet_t3 : 2
+reviewers_path_t3 : "../exports/Reviewers-3.txt"
+meta_reviewers_path_t3 : "../exports/MetaReviewers-3.txt"
+subjects_track_t3 : "./helper_data/SecondaryAreas_track1_.txt"
+
+score_file : "./output/subject_scores.txt"
+acl_tpms_file : "../exports/ilp_scores_acl_tpms.tsv" #Not used, legacy
+all_scores_file : "./output/all_scores.tsv" #output #Not used, legacy
+
+info_path : "../exports/User Information.xls"
+
+AC_path : "../exports/MetaReviewerSubjectAreas-1.txt"
+AC_path_t2 : "../exports/MetaReviewerSubjectAreas-2.txt"
+AC_path_t3 : "../exports/MetaReviewerSubjectAreas-3.txt"
+
+MAX_SUBJECT_LENGTH : 100 #CMT files seem to have that
+
+boring_areas : ["(Deep) Neural Network Algorithms", "Classification and Regression", "Representation Learning",
+                "!Focus Area", "Applications", "Other Foundations of"
+] #common subject areas

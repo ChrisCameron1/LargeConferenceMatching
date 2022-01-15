@@ -1,0 +1,21 @@
+AISI: Agriculture/Food
+AISI: Assistive Technology for Well-being
+AISI: Computational Social Science
+AISI: Economic/Financial
+AISI: Education
+AISI: Energy
+AISI: Environmental Sustainability
+AISI: Health
+AISI: Humanities
+AISI: Low and middle-income countries
+AISI: Mobility/Transportation
+AISI: Natural Sciences
+AISI: Networks and Social Networks
+AISI: Other Social Impact
+AISI: Philosophical and Ethical Issues
+AISI: Security and Privacy
+AISI: Social development
+AISI: Social Welfare, Justice, Fairness and Equality
+AISI: Underserved communities
+AISI: Urban Planning
+AISI: Web

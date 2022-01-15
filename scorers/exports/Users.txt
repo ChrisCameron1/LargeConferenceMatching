@@ -1,0 +1,3 @@
+# First Name	Middle Initial (optional)	Last Name	E-mail	Organization	Country	Google Scholar URL	Semantic Scholar URL	DBLP URL	Domain Conflicts
+John		Doe	johndoe@foobar.com	Foo Bar	China	https://scholar.google.com/citations?user=XXXXXX	https://www.semanticscholar.org/author/XXXXXX	https://dblp.org/pid/XX/XXXX.html	foo.bar
+Abc		Def	abcdef@foobar.com	XYZ	China	https://scholar.google.com/citations?user=YYYYYY	https://www.semanticscholar.org/author/YYYYYY	https://dblp.org/pid/YY/YYYY.html	xyz.xyz

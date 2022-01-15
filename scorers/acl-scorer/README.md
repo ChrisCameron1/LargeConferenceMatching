@@ -8,7 +8,7 @@ This code is based on the [ACL Reviewer Matching Code](https://github.com/acl-or
 3. Compute the scores for each (role, track) pair by setting the appropriate CMT export as the argument to `--reviewer_file`. Roles can be `PC`, `SPC` or `AC`. Tracks are the various tracks in the conference (like main-track, AISI track). To generate scores for PCs in Track-1, run the following command:
 
     ```
-    python compute_scores_aaai.py --submission_file exports/Papers.xls --db_file scratch/aaai-s2-entries.json --reviewer_file exports/Reviewers-1.txt --user_info_file "exports/User Information.xls" --model_file scratch/similarity-model.pt --abstracts_file "scratch/additional-abstracts.tsv"
+    python compute_scores_aaai.py --submission_file ../exports/Papers.xls --db_file scratch/aaai-s2-entries.json --reviewer_file ../exports/Reviewers-1.txt --user_info_file "../exports/User Information.xls" --model_file scratch/similarity-model.pt --abstracts_file "scratch/additional-abstracts.tsv"
     ```
 
 4. Agggregate all score files to a single file (`.\output\acl_scores.csv`) by running `python merge_all_files.py`.

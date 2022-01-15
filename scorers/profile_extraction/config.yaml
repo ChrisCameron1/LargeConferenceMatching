@@ -1,0 +1,21 @@
+papers_path : "../exports/Papers.xls"
+paper_sheet : 1
+info_path : "../exports/User Information.xls"
+users_path : "../exports/Users.txt"
+score_file : "./output/subject_scores.txt"
+output_info_file : "./output/new_info.xls"
+logname : "./dblp.log"
+
+#reviewers
+reviewers_path : "../exports/Reviewers-1.txt"
+meta_reviewers_path : "../exports/MetaReviewers-1.txt"
+reviewers_path_t2 : "../exports/Reviewers-2.txt"
+meta_reviewers_path_t2 : "../exports/MetaReviewers-2.txt"
+AC_path : "../exports/MetaReviewerSubjectAreas-1.txt"
+AC_path_t2 : "../exports/MetaReviewerSubjectAreas-2.txt"
+
+
+MAX_SUBJECT_LENGTH : 100 #CMT files seem to have that
+
+#A reviewer is reviewing a popular area if percent of papers submitted in the L1 of the reviewer primary area > 8% of total papers in the conference
+popular : ['Application Domains (APP)', 'Computer Vision (CV)', 'Machine Learning (ML)', 'Speech & Natural Language Processing (SNLP)', 'Data Mining & Knowledge Management (DMKM)']
