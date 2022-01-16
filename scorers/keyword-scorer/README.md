@@ -46,5 +46,7 @@ Download the following files from CMT and copy them to the `exports` folder:
     - keword score
     - overlap flag, true when there is an overlap of subject areas between the reviewer and the paper
 
-
+# Things to Note when using for a different conference
+- line 40 (A4_helper.py), definition of `rule2`, line 55 (A4_helper.py), definition of `inter_l1_mapping` : subject area specific
+- line 285, `REVIEWER_VECTOR_get_other_foundation_weights` function in `A4_helper.py` : subject area specific filtering
 

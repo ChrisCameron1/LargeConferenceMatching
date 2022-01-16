@@ -71,7 +71,28 @@ When the script executes, you will have the output with following columns:
 - `S2` = 1, if reviewer j has reviewed 3+ times or has written >4 papers in sister conferences
 - `S3` = 1, if reviewer j has reviewed 1+ times or has written >2 papers in sister conferences
 
-# Things to Note
+# Things to Note when running the code (especially for a different conference)
 - This scipt will create a pkl cache for the dblp file. In order to use a new dblp file, please delete the pkl file to refresh the cache.
 - See the sample output file 'new_info.xlsx' for reference
 - if country is not found for a user, then it is populated with empty string ''
+- might want to check the following lines for some hardcoded things:
+    - line 67 (profile_extractor.py)
+    ```
+    q10_column = 'Q10 (How many times have you been part of the program committee (as PC/SPC/AC, etc) of AAAI, IJCAI, NeurIPS, ACL, SIGIR, WWW, RSS, NAACL, KDD, IROS, ICRA, ICML, ICCV, EMNLP, EC, CVPR, AAMAS, HCOMP, HRI, ICAPS, ICDM, ICLR, ICWSM, IUI, KR, SAT, WSDM, UAI, AISTATS, COLT, CORL, CP, CPAIOR, ECAI, OR ECML in the past?)'
+    ```
+    This is specific to AAAI to check how many times the user has been a part of one of the committees
+    - line 89 (profile_extractor.py)
+    ```
+    a[q10_column] = a.apply(lambda row:row[q10_column] if type(row[q10_column])!=float else 'This is my first time reviewing for any conference.',axis=1)
+    ```
+    takes in values for that column, so thing might change for other conferences
+    - line 112 (profile_extractor.py) might need change as well
+    ```
+    q10_map = {'This is my first time reviewing for any of the listed conferences, but I have reviewed  for other conferences which are not listed above.' : 0,
+           'more than 10':10,
+           '1-3':2,
+           '4-10':7,
+           'This is my first time reviewing for any conference.':0}
+    ```
+    - line 40 (A4_helper.py), definition of `rule2`, line 55 (A4_helper.py), definition of `inter_l1_mapping` : subject area specific
+    - line 285, `REVIEWER_VECTOR_get_other_foundation_weights` function in `A4_helper.py` : subject area specific filtering

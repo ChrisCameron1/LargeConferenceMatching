@@ -98,7 +98,7 @@ boring_areas = [x.strip() for x in subject_areas_t3 if len([y for y in boring_ar
 papers_t3 = papers_t3[papers_t3['Status']=='Awaiting Decision']
 papers_t2 = papers_t2[papers_t2['Status']=='Awaiting Decision']
 papers = papers[papers['Status']=='Awaiting Decision']
-papers_t3 = papers_t3[papers_t3['Paper ID']!=9227]
+# papers_t3 = papers_t3[papers_t3['Paper ID']!=9227] ##remove invalid entries
 papers_t3 = papers_t3[papers_t3['Number of Files']>=1]
 papers_t3['Primary Subject Area']=papers_t3.apply(lambda row: row['Primary Subject Area'] 
                                                   if type(row['Primary Subject Area'] ) != float 
@@ -113,8 +113,8 @@ def handle_secondary_t3(row):
         return np.nan
     return ";".join(sas)
 papers_t3['Secondary Subject Areas']=papers_t3.apply(handle_secondary_t3,axis=1)
-papers_t3['Primary Subject Area']=papers_t3.apply(lambda row: "Computer Vision (CV) -> CV: Other Foundations of Computer Vision" 
-                                     if row['Paper ID']==9852 else row['Primary Subject Area'],axis=1)
+# papers_t3['Primary Subject Area']=papers_t3.apply(lambda row: "Computer Vision (CV) -> CV: Other Foundations of Computer Vision" 
+#                                      if row['Paper ID']==9852 else row['Primary Subject Area'],axis=1) #another manual fix
 
 
 # ### 2 Get Paper primary and secondary vectors
