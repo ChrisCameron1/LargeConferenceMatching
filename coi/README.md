@@ -3,7 +3,7 @@
 
 To start the COI computation, run the following command:
 ```
-python iter_solve.py --config_file config.yml
+python coi_module.py --config_file config.yml
 ```
 
 ### Input:
