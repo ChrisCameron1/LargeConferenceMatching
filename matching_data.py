@@ -30,7 +30,6 @@ def get_data(config, per_reviewer_num_indicators=None, per_paper_num_indicators=
 	reviewer_df['authored_any'] = reviewer_df['authored'].apply(lambda x: len(x) > 0)
 	
 	reviewers = reviewer_df.index.values
-	papers = scores_df.index.unique('paper').values
 	missing_reviewers = set(scores_df.index.unique('reviewer')) - set(reviewers)
 
 	scores_df = scores_df[~scores_df.index.get_level_values('reviewer').isin(list(missing_reviewers))]

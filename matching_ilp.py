@@ -92,7 +92,7 @@ class MatchingILP(BaseILP):
         paper_reviewer_tuples = self.paper_reviewer_df.index.values 
         matching_vars = ['x{}_{}'.format(i,j) for i, j in paper_reviewer_tuples]
         self.binary.add(matching_vars)
-        matching_vars_scores = [np.round_(self.paper_reviewer_df.loc[(i, j)]['score'], decimals=5) for i,j in paper_reviewer_tuples]
+        matching_vars_scores = [self.paper_reviewer_df.loc[(i, j)]['score'].item() for i,j in paper_reviewer_tuples]
         eqn = Equation('obj','',list(zip(matching_vars, matching_vars_scores)), None, None)
         self.objective.add(eqn)
 

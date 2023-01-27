@@ -75,8 +75,6 @@ def main(output_files_prefix='itertest',
         relative_mip_gap=None,
         valid_papers_file=None,
         valid_reviewers_file=None,
-        fix_reviewer_k=False,
-        fix_paper_k=False,
         add_soft_constraints=True,
         no_iterate=False,
         max_iter=1000000000):
@@ -152,7 +150,6 @@ def main(output_files_prefix='itertest',
             break
     if found:
         logger.info(f"Resuming from iteration {i}. Note that this might be 0 if you were part way through that iter")
-        config_file = gen_problem_path(j, suffix='.yml')
 
         try:
             tuple_path = gen_problem_path(j, suffix=CONFLICT_SUFFIX)
@@ -215,7 +212,6 @@ def main(output_files_prefix='itertest',
             logger.info(f'Abstol:{abstol}')
             logger.info(f'Relative MIP Gap:{relative_mip_gap}')
             solution_file = solve(ilp_file, warm_start=warm_start,abstol=abstol, relative_mip_gap=relative_mip_gap)
-            results_file = solution_file.replace('.sol', '_RESULTS.txt')
         
         # Step 3: Analyze solution
         logger.info(f"Step 3: Parse and Analyze solution")
@@ -298,8 +294,6 @@ if __name__ == '__main__':
     parser.add_argument('--num_coreview_vars', type=int, default=None)
     parser.add_argument('--master_conflicts_file', type=str, default=None)
     parser.add_argument('--initial_solution', type=str, default=None)
-    parser.add_argument('--fix_reviewer_k', action='store_true')
-    parser.add_argument('--fix_paper_k', action='store_true')
     parser.add_argument('--no_iterate', action='store_true')
     parser.add_argument('--max_iter', type=int, default=10000000)
 
@@ -356,8 +350,6 @@ if __name__ == '__main__':
         relative_mip_gap=args.relative_mip_gap,
         valid_papers_file=args.valid_papers_file,
         valid_reviewers_file = args.valid_reviewers_file,
-        fix_reviewer_k=args.fix_reviewer_k,
-        fix_paper_k=args.fix_paper_k,
         add_soft_constraints=args.add_soft_constraints,
         no_iterate=args.no_iterate,
         max_iter=args.max_iter)

@@ -61,7 +61,7 @@ def create_paper_reviewer_df(scores_df=None,
 
 	# Sort dataframe by scores
 	logger.info('Sorting scores...')
-	scores_df = scores_df = scores_df.sort_values(by=['score'],ascending=False)
+	scores_df = scores_df.sort_values(by=['score'],ascending=False)
 	# Set scores_df index to reviewer
 	scores_df = scores_df.reset_index().set_index('reviewer')
 	dfs=[]
@@ -106,6 +106,6 @@ def create_paper_reviewer_df(scores_df=None,
 	# Add bids
 	logger.info('join bids')
 	paper_reviewer_df = paper_reviewer_df.join(bids_df)
-	paper_reviewer_df['bid'].fillna(0)
+	paper_reviewer_df['bid'] = paper_reviewer_df['bid'].fillna(0)
 
 	return paper_reviewer_df
