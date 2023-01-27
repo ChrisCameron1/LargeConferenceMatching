@@ -71,7 +71,7 @@ def create_paper_reviewer_df(scores_df=None,
 		reviewer_k = per_reviewer_num_indicators.loc[reviewer, 'k']
 		role = reviewer_df.loc[reviewer]['role']
 		k_reviewers_to_add = scores_df.loc[reviewer].head(reviewer_k)
-		dfs.append(k_reviewers_to_add)
+		dfs.append(k_reviewers_to_add.reset_index())
 
 	for role in ["PC","SPC","AC"]:
 		logger.info(f'{missing_count[role]} {role} reviewers with no papers')
@@ -90,12 +90,12 @@ def create_paper_reviewer_df(scores_df=None,
 				papers_to_delete.append(paper)
 			if len(k_reviewers_to_add) == 0:
 				missing_count[role]+=1
-			dfs.append(k_reviewers_to_add)
+			dfs.append(k_reviewers_to_add.reset_index())
 	for role in ["PC","SPC","AC"]:
 		logger.info(f'{missing_count[role]} papers with no {role} reviewers')
 
 	paper_reviewer_df = pd.concat(dfs)
-	paper_reviewer_df = paper_reviewer_df.reset_index().drop_duplicates().set_index(['paper','reviewer'])
+	paper_reviewer_df = paper_reviewer_df.reset_index(drop=True).drop_duplicates().set_index(['paper','reviewer'])
 	size_before = paper_reviewer_df.size
 	logger.info(f'{len(papers_to_delete)} papers to delete...')
 	logger.info(papers_to_delete)
