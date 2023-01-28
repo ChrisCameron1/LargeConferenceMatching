@@ -18,7 +18,7 @@ python iter_solve.py --config_file toy_config.yml --add_soft_constraints --outpu
 ```
 The file should terminate with the message:
 ```
-No more coauthor constraints to add. Terminated at iteration 1 with 0 d0 and 1 d1 coauthor constraints
+No more coauthor constraints to add. Terminated at iteration [iter] with 0 d0 and 1 d1 coauthor constraints
 ```
 The output matching file will be created in `./results/toy_[iter]_matching.csv`, where `[iter]` is the iteration of row generation. See the "Output Files" section for a description of each output file. Note that this toy data is very unrealistic and many soft constraints are never violated. You will not be able to fully test row generation without more realistic data.
 
@@ -76,7 +76,7 @@ python iter_solve.py --config_file config.yml --add_soft_constraints --output_fi
 - `iter_solve.py`: This is the main file for running (will call all of the below)
 
 - `matching_ilp.py`: Code for building and writing the MIP
-- `lp_creator.py`: Wrapper around `matching_ilp.py` that sets up the variable indicator matrix. We create variables as follows:
+- `create_indicator.py`: Wrapper around `matching_ilp.py` that sets up the variable indicator matrix. We create variables as follows:
     - For each paper, create a variable for the K best PCs, SPCs, and ACs.
     - For each PC/SPC/AC member, create a variable for the K/5K/10K best papers. 
     - We do not create variables for really weak reviewer-paper pairs (as determined by a score threshold), as if these were set they would be poor matches.
