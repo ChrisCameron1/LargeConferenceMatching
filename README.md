@@ -141,6 +141,4 @@ When each stage completes, you will find the following files in `dir` with prefi
   year = {2022},
   copyright = {arXiv.org perpetual, non-exclusive license}
 }
-
-
-
+```
