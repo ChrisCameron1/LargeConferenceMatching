@@ -2,7 +2,7 @@
 This is code for the paper "Matching papers and reviewers at large conferences" (see [here](https://arxiv.org/abs/2202.12273))
 
 
-Testing with python version `3.7.3`, pandas version `0.24.2`
+Testing with python version `3.7.3`, pandas version `1.3.2`
 
 # Quick Start
 
