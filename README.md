@@ -20,7 +20,7 @@ The file should terminate with the message:
 ```
 No more coauthor constraints to add. Terminated at iteration 1 with 0 d0 and 1 d1 coauthor constraints
 ```
-The output matching file will be created in `./results/toy_[iter]_matching.csv`, where `[iter]` is the iteration of row generation. See the "Output Files" section for a description of each output file. 
+The output matching file will be created in `./results/toy_[iter]_matching.csv`, where `[iter]` is the iteration of row generation. See the "Output Files" section for a description of each output file. Note that this toy data is very unrealistic and many soft constraints are never violated. You will not be able to fully test row generation without more realistic data.
 
 # Running on your data
 
