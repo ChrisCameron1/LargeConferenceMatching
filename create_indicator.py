@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from tqdm import tqdm
 import logging
 
@@ -11,7 +10,8 @@ ROLE_2_MULTIPLER= {
     'PC': 1,
 }
 
-def create_paper_reviewer_df(scores_df=None, 
+def create_paper_reviewer_df(config=None,
+							scores_df=None, 
 							reviewer_df=None,
 							bids_df=None, 
 							per_reviewer_num_indicators=None,
@@ -20,11 +20,11 @@ def create_paper_reviewer_df(scores_df=None,
 							score_threshold=0.15):
 
 	# Filter out scores below threshold
-	logger.info(f'Filtering scores by threshold {score_threshold}')
+	logger.info(f'Filtering scores below threshold {score_threshold}')
 	num_entries_before = scores_df.size
 	scores_df = scores_df.query(f'score > {score_threshold}').copy()
 	num_entries_after = scores_df.size
-	logger.info(f'Keeping {num_entries_after/num_entries_before} fraction of scores below threshold {score_threshold}...')
+	logger.info(f'Keeping {num_entries_after/num_entries_before} fraction of scores after filtering below threshold {score_threshold}...')
 	# Add role column
 	role_dict = reviewer_df['role'].to_dict()
 	scores_df['role'] = scores_df.reset_index()['reviewer'].map(role_dict).values
@@ -32,7 +32,6 @@ def create_paper_reviewer_df(scores_df=None,
 	reviewers = scores_df.index.unique('reviewer').values
 	papers = scores_df.index.unique('paper').values
 
-	logger.info('getting num indicators')
 	if per_reviewer_num_indicators is None:
 		records = []
 		for reviewer in reviewers:
@@ -46,7 +45,7 @@ def create_paper_reviewer_df(scores_df=None,
 			records.append({'paper':paper,'PC_k':k,'SPC_k':k,'AC_k':k})
 		per_paper_num_indicators = pd.DataFrame.from_records(records).set_index('paper')
 
-	logger.info('Deleting conflicts...')
+	logger.info('Deleting (paper,reviewer) pairs that appear in conflicts...')
 	# Filter out conflicts
 	to_delete = []
 	for reviewer in tqdm(reviewers,desc='Getting conflict papers'):
@@ -67,6 +66,8 @@ def create_paper_reviewer_df(scores_df=None,
 	dfs=[]
 	# Add k best papers per reviewer
 	missing_count = {'PC': 0, 'SPC':0, 'AC':0}
+
+	logger.info(f"Adding best {k* ROLE_2_MULTIPLER['PC']}, {k* ROLE_2_MULTIPLER['SPC']}, {k* ROLE_2_MULTIPLER['AC']} papers for each PC, SPC, and AC reviewer respectively...")
 	for reviewer in tqdm(reviewers, desc='Adding best papers for reviewers'):
 		reviewer_k = per_reviewer_num_indicators.loc[reviewer, 'k']
 		role = reviewer_df.loc[reviewer]['role']
@@ -81,6 +82,7 @@ def create_paper_reviewer_df(scores_df=None,
 	# Add k best reviewers per paper
 	papers_to_delete=[]
 	missing_count = {'PC': 0, 'SPC':0, 'AC':0}
+	logger.info(f"Adding best {k} reviewers per paper...")
 	for paper in tqdm(papers,desc='Adding best reviewers for papers'):
 		paper_df = scores_df.loc[paper]
 		for role in ["PC","SPC","AC"]:
@@ -97,15 +99,14 @@ def create_paper_reviewer_df(scores_df=None,
 	paper_reviewer_df = pd.concat(dfs)
 	paper_reviewer_df = paper_reviewer_df.reset_index(drop=True).drop_duplicates().set_index(['paper','reviewer'])
 	size_before = paper_reviewer_df.size
-	logger.info(f'{len(papers_to_delete)} papers to delete...')
-	logger.info(papers_to_delete)
+	logger.info(f'{len(papers_to_delete)} papers to delete: {papers_to_delete}...')
 	paper_reviewer_df = paper_reviewer_df.drop(index=papers_to_delete, level='paper', errors='ignore')
 	logger.info(f'{size_before - paper_reviewer_df.size} entries deleted')
-	logger.info(f'Keeping {paper_reviewer_df.size/num_entries_after} fraction of scores adding k best reviewers and papers...')
+	logger.info(f'Keeping {paper_reviewer_df.size/num_entries_after} fraction of scores after removing low-scoring (paper,reviewer) matches...')
 
 	# Add bids
-	logger.info('join bids')
+	logger.info('Adding bids...')
 	paper_reviewer_df = paper_reviewer_df.join(bids_df)
-	paper_reviewer_df['bid'] = paper_reviewer_df['bid'].fillna(0)
+	paper_reviewer_df['bid'] = paper_reviewer_df['bid'].fillna(config['DEFAULT_BID_WHEN_NO_BIDS'])
 
 	return paper_reviewer_df

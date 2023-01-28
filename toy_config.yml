@@ -1,15 +1,15 @@
-RAW_SCORES_FILE: 'data/scores.csv'
-CACHED_SCORES_FILE: 'data/cached_scores.csv'
-BIDS_FILE: 'data/bids.csv'
-REVIEWERS_FILE: 'data/reviewers.csv'
-COAUTHOR_DISTANCE_FILE: 'data/distances.csv'
+RAW_SCORES_FILE: 'toy_data/scores.csv'
+CACHED_SCORES_FILE: 'toy_data/cached_scores.csv'
+BIDS_FILE: 'toy_data/bids.csv'
+REVIEWERS_FILE: 'toy_data/reviewers.csv'
+COAUTHOR_DISTANCE_FILE: 'toy_data/distances.csv'
 
 NAN_AS_ZERO_SCORE: False
 POSITIVE_BID_THR:  4
-DEFAULT_BID_WHEN_NO_BIDS: 1 #rubric: 0.05,1,2,4,6: not willing , not entered, in a pinch, willing, eager
-HYPER_PARAMS:
-    'sparsity_k': 50
-    'score_threshold': 0.15 
+DEFAULT_BID_WHEN_NO_BIDS: 2 #rubric: 0.05,1,2,4,6: not willing , not entered, in a pinch, willing, eager
+HYPER_PARAMS: 
+    'sparsity_k': 10
+    'score_threshold': 0.15
     'max_reviews_per_paper_PC': 2
     'max_reviews_per_paper_SPC': 1
     'max_reviews_per_paper_AC': 1
@@ -27,8 +27,6 @@ HYPER_PARAMS:
     'remove_non_symmetric': True
     'relax_paper_capacity': True
     'sen_reward': 0.1
-    'min_seniority': 0 # seniority scale: 0,1,2,3
+    'min_seniority': 0
     'target_seniority': 5
     'include_d1': True
-
-

@@ -1,7 +1,4 @@
-import yaml
-import numpy as np
 import pandas as pd
-import sys
 import itertools
 from tqdm import tqdm
 
@@ -23,10 +20,15 @@ def get_coreview_vars(distance_df=None,
 			sorted_tuple = sorted((a,b))
 			try:
 				distance = distance_df.loc[sorted_tuple]['distance'].item()
+			except ValueError:
+					print(sorted_tuple)
+					print(paper)
 			except KeyError:
-				continue
+					print(sorted_tuple)
+					print(paper)
+					continue
 
-			min_score = min(paper_reviewer_df.loc[(pid,a)]['score'].item(), paper_reviewer_df.loc[(pid,b)]['score'].item())
+			min_score = min(paper_reviewer_df.loc[(paper,a)]['score'].item(), paper_reviewer_df.loc[(paper,b)]['score'].item())
 
 			if (distance == 0 and d0) or (distance == 1 and d1):
 				record = dict(

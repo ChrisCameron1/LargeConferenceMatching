@@ -9,7 +9,7 @@ from iter_solve import setup_logging
 logger = logging.getLogger(__name__)
 
 
-def main(n_papers=1000, n_reviewers=3000, n_regions=5, output_dir='fake_data'):
+def main(n_papers=1000, n_reviewers=3000, n_regions=5, output_dir='toy_data'):
     setup_logging('data_generator.log')
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_papers', type=int, default=1000)
     parser.add_argument('--n_reviewers', type=int, default=3000)
     parser.add_argument('--n_regions', type=int, default=5)
-    parser.add_argument('--output_dir', type=str, default='fake_data')
+    parser.add_argument('--output_dir', type=str, default='toy_data')
 
     args = parser.parse_args()
 

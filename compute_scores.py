@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
@@ -56,8 +55,8 @@ def compute_scores(config=None):
     num_entries_before = scores.size
     scores = scores.query('score > 0')
     num_entries_after = scores.size
-    logger.info(f'Filtered {(num_entries_before - num_entries_after) / num_entries_before} fraction of scores <= 0...')
-
+    logger.info(f'Filtered scores <= 0. {(num_entries_before - num_entries_after) / num_entries_before} fraction removed ...')
+    logger.info(f"Caching aggregated score to {config['CACHED_SCORES_FILE']} to save time during next run. To recompute, delete this file and rerun this script.")
     scores.to_csv(config['CACHED_SCORES_FILE'])
     return scores
 

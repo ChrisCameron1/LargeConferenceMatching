@@ -1,15 +1,30 @@
 # LargeConferenceMatching
-Matching papers and reviewers at large conferences.
+This is code for the paper "Matching papers and reviewers at large conferences" (see [here](https://arxiv.org/abs/2202.12273))
 
-To execute, can run the following commands:
+
+Testing with python version `3.7.3`, pandas version `0.24.2`
+
+# Quick Start
+
+To test that the code runs on your system, you first need to create some toy data. Run:
 ```
 cd LargeConferenceMatching
 mkdir results
-python iter_solve.py --config_file config.yml --output_files_prefix ./results/
+python data_generator.py
 ```
+This creates the necessary data files in `./toy_data`. Then to run the matching on that data, execute:
+```
+python iter_solve.py --config_file toy_config.yml --add_soft_constraints --output_files_prefix ./results/toy
+```
+The file should terminate with the message:
+```
+No more coauthor constraints to add. Terminated at iteration 1 with 0 d0 and 1 d1 coauthor constraints
+```
+The output matching file will be created in `./results/toy_[iter]_matching.csv`, where `[iter]` is the iteration of row generation. See the "Output Files" section for a description of each output file. 
 
-The .yml must contain filepaths to four data files as so:
+# Running on your data
 
+To run on your own data you must create the following files that the `config.yml` file points to:
 ```
 RAW_SCORES_FILE: 'data/scores.csv'
 BIDS_FILE: 'data/bids.csv'
@@ -43,9 +58,17 @@ The `.csv` files should have the following headers and data format:
 `reviewer_1/reviewer_2`: int (unique indentifier for every reviewer)\
 `distance`: 0 for direct coauthors, 1 for once removed
 
-There is an addition filepath needed for writing the computed scores to file (for caching on subsequent runs):
+There is an addition file that is created after the scores are created. This is used for caching on subsequent runs. Please delete this file is you want to recompute the scores for any reason:
 ```
 CACHED_SCORES_FILE: 'data/cached_scores.csv'
+```
+
+After creating the necessary files, run:
+
+```
+cd LargeConferenceMatching
+mkdir results
+python iter_solve.py --config_file config.yml --add_soft_constraints --output_files_prefix ./results/test
 ```
 
 
@@ -88,17 +111,36 @@ CACHED_SCORES_FILE: 'data/cached_scores.csv'
 
 `--output_files_prefix` param set to be [dir/experiment_name].
 
-When each stage completes, you will find the following files in `dir` with prefix `experiment_name`_iter_`iteration`]: 
-    
+When each stage completes, you will find the following files in `dir` with prefix `[output_files_prefix]`\_iter\_`[iteration]`]: 
+
+    `.lp` - MIP file that is passed to CPLEX    
     `_status.json` - dictionary of time (walltime), status (CPLEX status), objective (CPLEX objective), and full_objective (objective after adding full constraint set)
     `.sol` - CPLEX solution file (for warm starting / analyzing)
-    `.yml` - your config
-    `_under_capacity_papers.csv` - Papers that were under the max review
+    `_cplex.log` - CPLEX log of solcing
+    `.yml` - configuration used for that iteration
+    `_per_paper_num_indicators.csv` - Number of indicators created for each paper, for each reviewer role
     `_coauthor_violations.csv` - Coauthor violations in the assignment
-    `_CONFLICTS.csv` - Reviewer conflicts in the solution. 3 column CSV (rid1,rid2,pid) for each co-review constraint that was violated.
-    `_indicator.pkl`- Indicator matrix (cached if you rerun)
-    `_matching.csv` - Main output file. Columns are `paper,reviewer,role,score,seniority`.
+    `_indicator.pkl`- Indicator matrix representing that (paper,reviewer) varaiables that are created(cached if you rerun)
+    `_matching.csv` - Main output file containing the complete matching. Columns are `paper,reviewer,role,score,seniority`.
     `_RESULTS.txt` - Solution analysis script 
+
+# FAQ
+
+- *CPLEX is taking a long time solve the `.lp` file?* Try setting `--abstol 10` in `iter_solver.py`. Often CPLEX quickly find a good enough solution but takes a long time proving optimality. CPLEX terminates if it finds a solution that it can prove is within `--abstol` units of objective function away from optimality. Change `10` as needed for your desired level of optimality.
+
+# Paper
+
+```
+@misc{https://doi.org/10.48550/arxiv.2202.12273,
+  doi = {10.48550/ARXIV.2202.12273},
+  url = {https://arxiv.org/abs/2202.12273},
+  author = {Leyton-Brown, Kevin and {Mausam} and Nandwani, Yatin and Zarkoob, Hedayat and Cameron, Chris and Newman, Neil and Raghu, Dinesh},
+  keywords = {Artificial Intelligence (cs.AI), Information Retrieval (cs.IR), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  title = {Matching Papers and Reviewers at Large Conferences},
+  publisher = {arXiv},
+  year = {2022},
+  copyright = {arXiv.org perpetual, non-exclusive license}
+}
 
 
 

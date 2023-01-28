@@ -92,7 +92,7 @@ def parse_solution(solution_file: str, paper_reviewer_df: pd.DataFrame, reviewer
                     paper = int(name.replace('region', ''))
                     regions.append(dict(
                         paper=paper,
-                        regions=float(value)
+                        regions=int(value)
                     ))
             elif name.startswith('cycle'):
                 cycle_stats = True
@@ -175,7 +175,7 @@ def parse_unassigned_papers(parsed_solution, per_paper_num_indicators, k=None, f
         if under_capacity_ac[paper] > 0:
             per_paper_num_indicators.loc[paper,'ac_k'] += int(k/2)
     
-    per_paper_num_indicators.to_csv(filename, index=False)
+    per_paper_num_indicators.to_csv(filename, index=True)
 
     return per_paper_num_indicators
     
@@ -312,7 +312,7 @@ def analyse_solution(config, solution_file: str, matching_data=None):
         # Check if 'regions' columns exist in dataframe
         if 'regions' in parsed_solution.region_df.columns:
             # NOTE: Region constraints only get imposed on "popular" areas
-            logger.info("Distribution of unique region reviewers (all roles) for each popular area paper")
+            logger.info("Distribution of unique regions represented across popular-area papers")
             logger.info(parsed_solution.region_df['regions'].value_counts().sort_index())
 
             bad_region_pids = parsed_solution.region_df.query('regions <= 1')['paper'].values
@@ -340,12 +340,5 @@ def analyse_solution(config, solution_file: str, matching_data=None):
 
     return parsed_solution, violation_records_df
 
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--solution_file", help="solution file to read in CPLEX format", default='/global/scratch/aaai_mip_data/instances/all_k=100.sol')
-    parser.add_argument("--config_file", help="config that generated the solution", default=None)
-    main(parser.parse_args())
     
 

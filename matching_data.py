@@ -37,7 +37,8 @@ def get_data(config, per_reviewer_num_indicators=None, per_paper_num_indicators=
 	distance_df = pd.read_csv(config['COAUTHOR_DISTANCE_FILE']).set_index(['reviewer_1','reviewer_2'])
 
 	logger.info("Sparsifying problem...")
-	paper_reviewer_df = create_paper_reviewer_df(scores_df=scores_df, 
+	paper_reviewer_df = create_paper_reviewer_df(config=config,
+			scores_df=scores_df, 
             reviewer_df=reviewer_df,
             bids_df=bids_df, 
             k=config['HYPER_PARAMS']['sparsity_k'],

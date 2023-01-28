@@ -1,4 +1,3 @@
-import pickle
 import pandas as pd
 import sys
 import argparse
@@ -8,11 +7,8 @@ from tqdm import tqdm
 from collections import defaultdict
 import os
 import yaml
-import re
 import json
-import itertools
 from analyze_sol import parse_solution, ParsedSolution, parse_unassigned_papers, analyse_solution, get_violation_records
-import cplex
 from lp_solver import solve
 from matching_ilp import to_name, MatchingILP
 from coreview_filter import get_coreview_vars
@@ -24,7 +20,7 @@ import logging.config
 logger = logging.getLogger(__name__)
 
 CONFLICT_SUFFIX = '_CONFLICTS.csv'
-NUM_VARIABLE_INDICATORS_SUFFIX = '_under_capacity_papers.csv'
+NUM_VARIABLE_INDICATORS_SUFFIX = '_per_paper_num_indicators.csv'
 NUM_REVIEWER_SUFFIX = '_reviewer_windows.csv'
 
 def update_unused_reviewers(per_reviewer_num, reviewer_df, matching_df, k, filename=None):
