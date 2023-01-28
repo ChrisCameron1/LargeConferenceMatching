@@ -21,12 +21,12 @@ def get_coreview_vars(distance_df=None,
 			try:
 				distance = distance_df.loc[sorted_tuple]['distance'].item()
 			except ValueError:
-					print(sorted_tuple)
-					print(paper)
+				print(sorted_tuple)
+				print(paper)
 			except KeyError:
-					print(sorted_tuple)
-					print(paper)
-					continue
+				print(sorted_tuple)
+				print(paper)
+				continue
 
 			min_score = min(paper_reviewer_df.loc[(paper,a)]['score'].item(), paper_reviewer_df.loc[(paper,b)]['score'].item())
 
@@ -36,6 +36,7 @@ def get_coreview_vars(distance_df=None,
 						reviewer_i = sorted_tuple[0],
 						reviewer_j = sorted_tuple[1],
 						min_score = min_score)
+				records.append(record)
 
 	df = pd.DataFrame.from_records(records)
 

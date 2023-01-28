@@ -92,7 +92,7 @@ def parse_solution(solution_file: str, paper_reviewer_df: pd.DataFrame, reviewer
                     paper = int(name.replace('region', ''))
                     regions.append(dict(
                         paper=paper,
-                        regions=int(value)
+                        regions=int(np.round(float(value)))
                     ))
             elif name.startswith('cycle'):
                 cycle_stats = True
