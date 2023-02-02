@@ -230,7 +230,7 @@ class MatchingILP(BaseILP):
         #[Constraint] reg_i <= Sum_{Regions R} reg_iR
         #[Constraint] reg_iR <= Sum_{j are PC+SPC members s.t. Region_j=R}x_ij
         eqns = []
-        regions = self.reviewer_df['region'].unique()
+        regions = self.reviewer_df.query("role != 'AC'")['region'].unique()
         for pid in self.paper_reviewer_df.index.unique('paper'):
             this_vars = ['region{}'.format(pid)] + ['region{}_{}'.format(pid,this_region) for this_region in regions]
             this_coefs = [1] + [-1]*len(regions)
